@@ -1,0 +1,14 @@
+{
+  "name": "Token Roll Manager",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "description": "Editable token-based roll manager for Owlbear Rodeo with Dice+ integration.",
+  "author": "Seba",
+  "action": {
+    "title": "Token Rolls",
+    "icon": "/icon.svg",
+    "popover": "/",
+    "height": 600,
+    "width": 420
+  }
+}
