@@ -6,8 +6,8 @@
   "author": "Seba",
   "action": {
     "title": "Token Rolls",
-    "icon": "/icon.svg",
-    "popover": "/",
+    "icon": "/owlbear/icon.svg",
+    "popover": "/owlbear/",
     "height": 600,
     "width": 420
   }
