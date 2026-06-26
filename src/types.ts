@@ -45,6 +45,7 @@ export type ColdState = {
 export type CharacterMetadata = {
   ownerPlayerId: string;
   ownerPlayerName: string;
+  ownerConnectionId?: string;
   characterName: string;
   stats: {
     str: number;
@@ -63,6 +64,7 @@ export type CharacterMetadata = {
 export type PlayerSlot = {
   playerId: string;
   playerName: string;
+  playerConnectionId?: string;
   character: CharacterMetadata;
   connected: boolean;
   updatedAt: number;

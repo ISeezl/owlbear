@@ -43,6 +43,7 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
       ...character,
       ownerPlayerId: selectedSlot.playerId,
       ownerPlayerName: selectedSlot.playerName,
+      ownerConnectionId: selectedSlot.playerConnectionId,
     };
   }
 

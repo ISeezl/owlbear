@@ -3,17 +3,25 @@ import type { CharacterMetadata, ExtensionSettings, RollConfig } from "../types"
 
 export async function getCurrentPlayer() {
   try {
-    const [role, name] = await Promise.all([OBR.player.getRole(), OBR.player.getName()]);
-    return { id: OBR.player.id, name, isGm: role === "GM" };
+    const [role, name, id, connectionId] = await Promise.all([
+      OBR.player.getRole(),
+      OBR.player.getName(),
+      OBR.player.getId(),
+      OBR.player.getConnectionId(),
+    ]);
+    return { id, name, connectionId, isGm: role === "GM" };
   } catch {
-    return { id: "local-player", name: "Jugador local", isGm: false };
+    return { id: "local-player", name: "Jugador local", connectionId: "local-player", isGm: false };
   }
 }
 
 export async function canUseToken(character: CharacterMetadata, settings: ExtensionSettings) {
   const player = await getCurrentPlayer();
   if (player.isGm) return settings.allowGmToUseAllTokens;
-  return settings.allowPlayersToUseOwnedTokens && character.ownerPlayerId === player.id;
+  return (
+    settings.allowPlayersToUseOwnedTokens &&
+    (character.ownerPlayerId === player.id || character.ownerConnectionId === player.connectionId)
+  );
 }
 
 export async function canSeeRoll(roll: RollConfig, character?: CharacterMetadata) {
@@ -21,5 +29,5 @@ export async function canSeeRoll(roll: RollConfig, character?: CharacterMetadata
   if (roll.visibility === "everyone") return true;
   if (player.isGm) return true;
   if (roll.visibility === "gm_only") return false;
-  return Boolean(character && character.ownerPlayerId === player.id);
+  return Boolean(character && (character.ownerPlayerId === player.id || character.ownerConnectionId === player.connectionId));
 }

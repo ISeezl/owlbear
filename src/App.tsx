@@ -36,7 +36,12 @@ export default function App() {
     defaultResultMode: "public",
   });
   const [slots, setSlots] = useState<PlayerSlot[]>([]);
-  const [currentPlayer, setCurrentPlayer] = useState({ id: "local-player", name: "Jugador local", isGm: false });
+  const [currentPlayer, setCurrentPlayer] = useState({
+    id: "local-player",
+    name: "Jugador local",
+    connectionId: "local-player",
+    isGm: false,
+  });
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
   const [editingRoll, setEditingRoll] = useState<RollConfig | undefined>();
   const [notice, setNotice] = useState("Listo.");
@@ -46,8 +51,10 @@ export default function App() {
 
   const visibleSlots = useMemo(() => {
     if (currentPlayer.isGm) return slots;
-    return slots.filter((slot) => slot.playerId === currentPlayer.id);
-  }, [currentPlayer.id, currentPlayer.isGm, slots]);
+    return slots.filter(
+      (slot) => slot.playerId === currentPlayer.id || slot.playerConnectionId === currentPlayer.connectionId,
+    );
+  }, [currentPlayer.connectionId, currentPlayer.id, currentPlayer.isGm, slots]);
 
   const activeSlot = useMemo(
     () => visibleSlots.find((slot) => slot.playerId === selectedSlotId) ?? visibleSlots[0],
@@ -70,7 +77,9 @@ export default function App() {
       getPlayers(),
     ]);
     const syncedSlots = await syncPlayerSlots([...players, player]);
-    const nextVisibleSlots = player.isGm ? syncedSlots : syncedSlots.filter((slot) => slot.playerId === player.id);
+    const nextVisibleSlots = player.isGm
+      ? syncedSlots
+      : syncedSlots.filter((slot) => slot.playerId === player.id || slot.playerConnectionId === player.connectionId);
 
     rollsRef.current = storedRolls;
     slotsRef.current = syncedSlots;
@@ -127,6 +136,7 @@ export default function App() {
               ...character,
               ownerPlayerId: slot.playerId,
               ownerPlayerName: slot.playerName,
+              ownerConnectionId: slot.playerConnectionId,
             },
             updatedAt: Date.now(),
           }
@@ -141,7 +151,11 @@ export default function App() {
       slot.playerId === playerId
         ? {
             ...slot,
-            character: emptyCharacterForPlayer({ id: slot.playerId, name: slot.playerName }),
+            character: emptyCharacterForPlayer({
+              id: slot.playerId,
+              name: slot.playerName,
+              connectionId: slot.playerConnectionId,
+            }),
             updatedAt: Date.now(),
           }
         : slot,

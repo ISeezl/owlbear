@@ -2,7 +2,7 @@ import OBR from "@owlbear-rodeo/sdk";
 import { CHARACTER_METADATA_KEY, PLAYER_SLOTS_METADATA_KEY, ROLLS_METADATA_KEY, SETTINGS_METADATA_KEY } from "../constants";
 import type { CharacterMetadata, ExtensionSettings, PlayerSlot, RollConfig, SelectedToken } from "../types";
 
-type PlayerSummary = { id: string; name: string; isGm: boolean };
+type PlayerSummary = { id: string; name: string; isGm: boolean; connectionId?: string };
 
 const fallbackStore = {
   rolls: [] as RollConfig[],
@@ -11,9 +11,13 @@ const fallbackStore = {
   selected: undefined as SelectedToken | undefined,
 };
 
-export const emptyCharacterForPlayer = (player: { id: string; name: string }, name = player.name): CharacterMetadata => ({
+export const emptyCharacterForPlayer = (
+  player: { id: string; name: string; connectionId?: string },
+  name = player.name,
+): CharacterMetadata => ({
   ownerPlayerId: player.id,
   ownerPlayerName: player.name,
+  ownerConnectionId: player.connectionId,
   characterName: name || "Personaje",
   stats: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0, proficiencyBonus: 2 },
   skills: { survival: 0, perception: 0, athletics: 0 },
@@ -99,29 +103,36 @@ export async function savePlayerSlots(slots: PlayerSlot[]) {
 export async function syncPlayerSlots(players: PlayerSummary[]) {
   const storedSlots = await getPlayerSlots();
   const byPlayer = new Map(storedSlots.map((slot) => [slot.playerId, slot]));
+  const byConnection = new Map(storedSlots.filter((slot) => slot.playerConnectionId).map((slot) => [slot.playerConnectionId, slot]));
   const uniquePlayers = Array.from(new Map(players.map((player) => [player.id, player])).values());
   const playerSlots = uniquePlayers.filter((player) => !player.isGm);
   const connectedPlayerIds = new Set(playerSlots.map((player) => player.id));
+  const connectedConnectionIds = new Set(playerSlots.map((player) => player.connectionId).filter(Boolean));
 
   const updatedSlots = storedSlots.map((slot) => ({
     ...slot,
-    connected: connectedPlayerIds.has(slot.playerId),
+    connected: connectedPlayerIds.has(slot.playerId) || Boolean(slot.playerConnectionId && connectedConnectionIds.has(slot.playerConnectionId)),
   }));
 
   const slots = [...updatedSlots];
 
   for (const player of playerSlots) {
-    const existing = byPlayer.get(player.id);
+    const existing = byPlayer.get(player.id) ?? (player.connectionId ? byConnection.get(player.connectionId) : undefined);
     if (existing) {
-      const index = slots.findIndex((slot) => slot.playerId === player.id);
+      const index = slots.findIndex(
+        (slot) => slot.playerId === existing.playerId || Boolean(existing.playerConnectionId && slot.playerConnectionId === existing.playerConnectionId),
+      );
       slots[index] = {
         ...existing,
+        playerId: player.id,
         playerName: player.name,
+        playerConnectionId: player.connectionId,
         connected: true,
         character: {
           ...existing.character,
           ownerPlayerId: player.id,
           ownerPlayerName: player.name,
+          ownerConnectionId: player.connectionId,
         },
       };
       continue;
@@ -130,7 +141,8 @@ export async function syncPlayerSlots(players: PlayerSummary[]) {
     slots.push({
       playerId: player.id,
       playerName: player.name,
-      character: emptyCharacterForPlayer(player),
+      playerConnectionId: player.connectionId,
+      character: { ...emptyCharacterForPlayer(player), ownerConnectionId: player.connectionId },
       connected: true,
       updatedAt: Date.now(),
     });
@@ -185,7 +197,12 @@ export async function getTokenCharacter(tokenId: string): Promise<CharacterMetad
 export async function getPlayers(): Promise<PlayerSummary[]> {
   try {
     const players = await OBR.party.getPlayers();
-    return players.map((player) => ({ id: player.id, name: player.name || player.id, isGm: player.role === "GM" }));
+    return players.map((player) => ({
+      id: player.id,
+      name: player.name || player.id,
+      isGm: player.role === "GM",
+      connectionId: player.connectionId,
+    }));
   } catch {
     return [{ id: "local-player", name: "Jugador local", isGm: false }];
   }
