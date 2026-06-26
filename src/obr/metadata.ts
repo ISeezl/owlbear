@@ -99,7 +99,8 @@ export async function savePlayerSlots(slots: PlayerSlot[]) {
 export async function syncPlayerSlots(players: PlayerSummary[]) {
   const storedSlots = await getPlayerSlots();
   const byPlayer = new Map(storedSlots.map((slot) => [slot.playerId, slot]));
-  const playerSlots = players.filter((player) => !player.isGm);
+  const uniquePlayers = Array.from(new Map(players.map((player) => [player.id, player])).values());
+  const playerSlots = uniquePlayers.filter((player) => !player.isGm);
 
   const slots = playerSlots.map((player) => {
     const existing = byPlayer.get(player.id);

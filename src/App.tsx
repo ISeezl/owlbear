@@ -78,7 +78,7 @@ export default function App() {
       getCurrentPlayer(),
       getPlayers(),
     ]);
-    const syncedSlots = await syncPlayerSlots(players);
+    const syncedSlots = await syncPlayerSlots([...players, player]);
     const nextVisibleSlots = player.isGm ? syncedSlots : syncedSlots.filter((slot) => slot.playerId === player.id);
 
     rollsRef.current = storedRolls;
