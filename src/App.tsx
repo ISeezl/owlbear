@@ -34,8 +34,7 @@ export default function App() {
     allowPlayersToUseOwnedTokens: true,
     allowGmToUseAllTokens: true,
     defaultResultMode: "public",
-    coldGlobalBonus: 0,
-    coldGlobalBonusLabel: "",
+    globalBonuses: [],
   });
   const [slots, setSlots] = useState<PlayerSlot[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState({

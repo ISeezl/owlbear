@@ -268,6 +268,33 @@ textarea {
   font-weight: 600;
 }
 
+.bonus-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bonus-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 70px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.bonus-row label {
+  margin-bottom: 0;
+}
+
+@media (max-width: 360px) {
+  .bonus-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .check {
   display: flex;
   grid-template-columns: none;

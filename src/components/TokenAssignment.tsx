@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CharacterMetadata, PlayerSlot } from "../types";
+import type { CharacterMetadata, PlayerSlot, RollBonus } from "../types";
 import { emptyCharacterForPlayer } from "../obr/metadata";
 
 type Props = {
@@ -42,6 +42,30 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
   function updateCold(value: Partial<CharacterMetadata["cold"]>) {
     const next = ensureDraft();
     setDraft({ ...next, cold: { ...next.cold, ...value } });
+  }
+
+  function updateBonus(bonusId: string, changes: Partial<RollBonus>) {
+    const next = ensureDraft();
+    setDraft({
+      ...next,
+      bonuses: (next.bonuses ?? []).map((bonus) => (bonus.id === bonusId ? { ...bonus, ...changes } : bonus)),
+    });
+  }
+
+  function addBonus() {
+    const next = ensureDraft();
+    setDraft({
+      ...next,
+      bonuses: [
+        ...(next.bonuses ?? []),
+        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, scope: "cold" },
+      ],
+    });
+  }
+
+  function removeBonus(bonusId: string) {
+    const next = ensureDraft();
+    setDraft({ ...next, bonuses: (next.bonuses ?? []).filter((bonus) => bonus.id !== bonusId) });
   }
 
   function fixedOwner(character: CharacterMetadata) {
@@ -113,16 +137,6 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
                     onChange={(event) => updateStats("proficiencyBonus", Number(event.target.value))}
                   />
                 </label>
-                {["survival", "perception", "athletics"].map((skill) => (
-                  <label key={skill}>
-                    {skill}
-                    <input
-                      type="number"
-                      value={ensureDraft().skills?.[skill] ?? 0}
-                      onChange={(event) => updateSkill(skill, Number(event.target.value))}
-                    />
-                  </label>
-                ))}
               </div>
             ) : null}
           </div>
@@ -150,24 +164,35 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
                     />
                     Ropa mojada
                   </label>
-                  <div className="grid-two">
-                    <label>
-                      Bono frio individual
-                      <input
-                        type="number"
-                        value={ensureDraft().cold.dmBonus ?? 0}
-                        onChange={(event) => updateCold({ dmBonus: Number(event.target.value) })}
-                      />
-                    </label>
-                    <label>
-                      Motivo
-                      <input
-                        value={ensureDraft().cold.dmBonusLabel ?? ""}
-                        placeholder="Cerca del fuego..."
-                        onChange={(event) => updateCold({ dmBonusLabel: event.target.value })}
-                      />
-                    </label>
+                  <div className="bonus-list">
+                    {(ensureDraft().bonuses ?? []).map((bonus) => (
+                      <div className="bonus-row" key={bonus.id}>
+                        <label>
+                          Nombre
+                          <input value={bonus.label} onChange={(event) => updateBonus(bonus.id, { label: event.target.value })} />
+                        </label>
+                        <label>
+                          Bono
+                          <input
+                            type="number"
+                            value={bonus.value}
+                            onChange={(event) => updateBonus(bonus.id, { value: Number(event.target.value) })}
+                          />
+                        </label>
+                        <label>
+                          Aplica a
+                          <select value={bonus.scope} onChange={(event) => updateBonus(bonus.id, { scope: event.target.value as RollBonus["scope"] })}>
+                            <option value="cold">Frio</option>
+                          </select>
+                        </label>
+                        <button className="danger" onClick={() => removeBonus(bonus.id)}>
+                          Borrar
+                        </button>
+                      </div>
+                    ))}
+                    {(ensureDraft().bonuses ?? []).length === 0 ? <p className="muted">No hay bonos individuales.</p> : null}
                   </div>
+                  <button onClick={addBonus}>Agregar bono individual</button>
                 </>
               ) : null}
             </div>

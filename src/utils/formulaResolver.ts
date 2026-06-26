@@ -12,8 +12,12 @@ export function resolveFormula(formula: string, character?: CharacterMetadata, s
   }
 
   const coldClothingBonus = character?.cold.hasColdWeatherClothing && !character.cold.wetClothing ? 5 : 0;
-  const coldDmBonus = character?.cold.dmBonus ?? 0;
-  const coldGlobalBonus = settings?.coldGlobalBonus ?? 0;
+  const coldCharacterBonus = (character?.bonuses ?? [])
+    .filter((bonus) => bonus.scope === "cold")
+    .reduce((total, bonus) => total + bonus.value, 0);
+  const coldGlobalBonus = (settings?.globalBonuses ?? [])
+    .filter((bonus) => bonus.scope === "cold")
+    .reduce((total, bonus) => total + bonus.value, 0);
 
   const variables: Record<string, number | undefined> = {
     STR: character?.stats.str,
@@ -26,7 +30,7 @@ export function resolveFormula(formula: string, character?: CharacterMetadata, s
     SURVIVAL: character?.skills?.survival,
     PERCEPTION: character?.skills?.perception,
     ATHLETICS: character?.skills?.athletics,
-    COLD_BONUS: coldClothingBonus + coldDmBonus + coldGlobalBonus,
+    COLD_BONUS: coldClothingBonus + coldCharacterBonus + coldGlobalBonus,
     FROST: character?.cold.frost,
     EXHAUSTION: character?.cold.exhaustion,
   };

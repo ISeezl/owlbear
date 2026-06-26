@@ -22,7 +22,8 @@ export const emptyCharacterForPlayer = (
   stats: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0, proficiencyBonus: 2 },
   skills: { },
   deathSaves: { success: 0, failure: 0 },
-  cold: { exhaustion: 0, frost: 0, hasColdWeatherClothing: false, wetClothing: false, dmBonus: 0, dmBonusLabel: "" },
+  bonuses: [],
+  cold: { exhaustion: 0, frost: 0, hasColdWeatherClothing: false, wetClothing: false },
 });
 
 export function isOwlbearReady() {
@@ -63,8 +64,7 @@ export async function getSettings(): Promise<ExtensionSettings> {
     allowPlayersToUseOwnedTokens: true,
     allowGmToUseAllTokens: true,
     defaultResultMode: "public",
-    coldGlobalBonus: 0,
-    coldGlobalBonusLabel: "",
+    globalBonuses: [],
   };
 
   try {

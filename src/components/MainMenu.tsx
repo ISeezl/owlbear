@@ -1,4 +1,4 @@
-import type { ExtensionSettings, PlayerSlot, RollConfig } from "../types";
+import type { ExtensionSettings, PlayerSlot, RollBonus, RollConfig } from "../types";
 import { RollList } from "./RollList";
 import { TokenAssignment } from "./TokenAssignment";
 
@@ -39,6 +39,32 @@ export function MainMenu({
   onExport,
   onImport,
 }: Props) {
+  const globalBonuses = settings.globalBonuses ?? [];
+
+  function updateGlobalBonus(bonusId: string, changes: Partial<RollBonus>) {
+    onSettingsChange({
+      ...settings,
+      globalBonuses: globalBonuses.map((bonus) => (bonus.id === bonusId ? { ...bonus, ...changes } : bonus)),
+    });
+  }
+
+  function addGlobalBonus() {
+    onSettingsChange({
+      ...settings,
+      globalBonuses: [
+        ...globalBonuses,
+        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, scope: "cold" },
+      ],
+    });
+  }
+
+  function removeGlobalBonus(bonusId: string) {
+    onSettingsChange({
+      ...settings,
+      globalBonuses: globalBonuses.filter((bonus) => bonus.id !== bonusId),
+    });
+  }
+
   return (
     <>
       <TokenAssignment
@@ -120,24 +146,36 @@ export function MainMenu({
                 <option value="gm_only">Solo GM</option>
               </select>
             </label>
-            <div className="grid-two">
-              <label>
-                Bono frio global
-                <input
-                  type="number"
-                  value={settings.coldGlobalBonus ?? 0}
-                  onChange={(event) => onSettingsChange({ ...settings, coldGlobalBonus: Number(event.target.value) })}
-                />
-              </label>
-              <label>
-                Motivo
-                <input
-                  value={settings.coldGlobalBonusLabel ?? ""}
-                  placeholder="Fuego, refugio..."
-                  onChange={(event) => onSettingsChange({ ...settings, coldGlobalBonusLabel: event.target.value })}
-                />
-              </label>
+            <h3>Bonos globales de tiradas</h3>
+            <div className="bonus-list">
+              {globalBonuses.map((bonus) => (
+                <div className="bonus-row" key={bonus.id}>
+                  <label>
+                    Nombre
+                    <input value={bonus.label} onChange={(event) => updateGlobalBonus(bonus.id, { label: event.target.value })} />
+                  </label>
+                  <label>
+                    Bono
+                    <input
+                      type="number"
+                      value={bonus.value}
+                      onChange={(event) => updateGlobalBonus(bonus.id, { value: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    Aplica a
+                    <select value={bonus.scope} onChange={(event) => updateGlobalBonus(bonus.id, { scope: event.target.value as RollBonus["scope"] })}>
+                      <option value="cold">Frio</option>
+                    </select>
+                  </label>
+                  <button className="danger" onClick={() => removeGlobalBonus(bonus.id)}>
+                    Borrar
+                  </button>
+                </div>
+              ))}
+              {globalBonuses.length === 0 ? <p className="muted">No hay bonos globales.</p> : null}
             </div>
+            <button onClick={addGlobalBonus}>Agregar bono global</button>
           </section>
         </>
       ) : (

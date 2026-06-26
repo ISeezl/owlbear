@@ -5,6 +5,15 @@ export type ResultMode = "public" | "private" | "gm_only";
 export type EffectCondition = "success" | "failure" | "natural_1" | "natural_20" | "always";
 export type EffectOperation = "increment" | "decrement" | "set";
 
+export type RollBonusScope = "cold";
+
+export type RollBonus = {
+  id: string;
+  label: string;
+  value: number;
+  scope: RollBonusScope;
+};
+
 export type RollEffect = {
   id: string;
   condition: EffectCondition;
@@ -40,8 +49,6 @@ export type ColdState = {
   frost: number;
   hasColdWeatherClothing: boolean;
   wetClothing: boolean;
-  dmBonus?: number;
-  dmBonusLabel?: string;
 };
 
 export type CharacterMetadata = {
@@ -59,6 +66,7 @@ export type CharacterMetadata = {
     proficiencyBonus: number;
   };
   skills?: Record<string, number>;
+  bonuses?: RollBonus[];
   deathSaves: DeathSaves;
   cold: ColdState;
 };
@@ -77,8 +85,7 @@ export type ExtensionSettings = {
   allowPlayersToUseOwnedTokens: boolean;
   allowGmToUseAllTokens: boolean;
   defaultResultMode: ResultMode;
-  coldGlobalBonus?: number;
-  coldGlobalBonusLabel?: string;
+  globalBonuses?: RollBonus[];
 };
 
 export type SelectedToken = {
