@@ -34,6 +34,8 @@ export default function App() {
     allowPlayersToUseOwnedTokens: true,
     allowGmToUseAllTokens: true,
     defaultResultMode: "public",
+    coldGlobalBonus: 0,
+    coldGlobalBonusLabel: "",
   });
   const [slots, setSlots] = useState<PlayerSlot[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState({
@@ -188,7 +190,7 @@ export default function App() {
     }
 
     try {
-      const resolved = resolveFormula(roll.formula, character);
+      const resolved = resolveFormula(roll.formula, character, settings);
       let rollId: string;
       let localOutcome: RollOutcome | undefined;
 

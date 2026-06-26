@@ -40,6 +40,8 @@ export type ColdState = {
   frost: number;
   hasColdWeatherClothing: boolean;
   wetClothing: boolean;
+  dmBonus?: number;
+  dmBonusLabel?: string;
 };
 
 export type CharacterMetadata = {
@@ -75,6 +77,8 @@ export type ExtensionSettings = {
   allowPlayersToUseOwnedTokens: boolean;
   allowGmToUseAllTokens: boolean;
   defaultResultMode: ResultMode;
+  coldGlobalBonus?: number;
+  coldGlobalBonusLabel?: string;
 };
 
 export type SelectedToken = {

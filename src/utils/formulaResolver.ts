@@ -1,4 +1,4 @@
-import type { CharacterMetadata } from "../types";
+import type { CharacterMetadata, ExtensionSettings } from "../types";
 
 const variablePattern = /\b[A-Z_]+\b/g;
 
@@ -6,10 +6,14 @@ export function getFormulaVariables(formula: string) {
   return Array.from(new Set(formula.match(variablePattern) ?? []));
 }
 
-export function resolveFormula(formula: string, character?: CharacterMetadata) {
+export function resolveFormula(formula: string, character?: CharacterMetadata, settings?: ExtensionSettings) {
   if (!formula.trim()) {
     throw new Error("La fórmula no puede estar vacía.");
   }
+
+  const coldClothingBonus = character?.cold.hasColdWeatherClothing && !character.cold.wetClothing ? 5 : 0;
+  const coldDmBonus = character?.cold.dmBonus ?? 0;
+  const coldGlobalBonus = settings?.coldGlobalBonus ?? 0;
 
   const variables: Record<string, number | undefined> = {
     STR: character?.stats.str,
@@ -22,7 +26,7 @@ export function resolveFormula(formula: string, character?: CharacterMetadata) {
     SURVIVAL: character?.skills?.survival,
     PERCEPTION: character?.skills?.perception,
     ATHLETICS: character?.skills?.athletics,
-    COLD_BONUS: character?.cold.hasColdWeatherClothing && !character.cold.wetClothing ? 5 : 0,
+    COLD_BONUS: coldClothingBonus + coldDmBonus + coldGlobalBonus,
     FROST: character?.cold.frost,
     EXHAUSTION: character?.cold.exhaustion,
   };

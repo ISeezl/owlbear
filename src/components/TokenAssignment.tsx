@@ -15,6 +15,7 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
   const selectedSlot = slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0];
   const [draft, setDraft] = useState<CharacterMetadata | undefined>(selectedSlot?.character);
   const [statsOpen, setStatsOpen] = useState(true);
+  const [dmBonusOpen, setDmBonusOpen] = useState(true);
 
   useEffect(() => {
     setDraft(selectedSlot?.character);
@@ -36,6 +37,11 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
   function updateSkill(key: string, value: number) {
     const next = ensureDraft();
     setDraft({ ...next, skills: { ...(next.skills ?? {}), [key]: value } });
+  }
+
+  function updateCold(value: Partial<CharacterMetadata["cold"]>) {
+    const next = ensureDraft();
+    setDraft({ ...next, cold: { ...next.cold, ...value } });
   }
 
   function fixedOwner(character: CharacterMetadata) {
@@ -120,6 +126,52 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
               </div>
             ) : null}
           </div>
+          {isGm ? (
+            <div className="collapsible">
+              <button className="collapse-button" onClick={() => setDmBonusOpen((open) => !open)} aria-expanded={dmBonusOpen}>
+                <span>Bonificadores DM</span>
+                <span>{dmBonusOpen ? "Ocultar" : "Mostrar"}</span>
+              </button>
+              {dmBonusOpen ? (
+                <>
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={ensureDraft().cold.hasColdWeatherClothing}
+                      onChange={(event) => updateCold({ hasColdWeatherClothing: event.target.checked })}
+                    />
+                    Ropa de frio (+5 si no esta mojada)
+                  </label>
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={ensureDraft().cold.wetClothing}
+                      onChange={(event) => updateCold({ wetClothing: event.target.checked })}
+                    />
+                    Ropa mojada
+                  </label>
+                  <div className="grid-two">
+                    <label>
+                      Bono frio individual
+                      <input
+                        type="number"
+                        value={ensureDraft().cold.dmBonus ?? 0}
+                        onChange={(event) => updateCold({ dmBonus: Number(event.target.value) })}
+                      />
+                    </label>
+                    <label>
+                      Motivo
+                      <input
+                        value={ensureDraft().cold.dmBonusLabel ?? ""}
+                        placeholder="Cerca del fuego..."
+                        onChange={(event) => updateCold({ dmBonusLabel: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           <div className="button-row">
             <button className="primary" onClick={() => onSave(selectedSlot.playerId, fixedOwner(ensureDraft()))}>
               Guardar hoja

@@ -120,6 +120,24 @@ export function MainMenu({
                 <option value="gm_only">Solo GM</option>
               </select>
             </label>
+            <div className="grid-two">
+              <label>
+                Bono frio global
+                <input
+                  type="number"
+                  value={settings.coldGlobalBonus ?? 0}
+                  onChange={(event) => onSettingsChange({ ...settings, coldGlobalBonus: Number(event.target.value) })}
+                />
+              </label>
+              <label>
+                Motivo
+                <input
+                  value={settings.coldGlobalBonusLabel ?? ""}
+                  placeholder="Fuego, refugio..."
+                  onChange={(event) => onSettingsChange({ ...settings, coldGlobalBonusLabel: event.target.value })}
+                />
+              </label>
+            </div>
           </section>
         </>
       ) : (
