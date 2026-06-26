@@ -49,11 +49,12 @@ export function MainMenu({
   }
 
   function addGlobalBonus() {
+    const firstRollId = rolls[0]?.id ?? "";
     onSettingsChange({
       ...settings,
       globalBonuses: [
         ...globalBonuses,
-        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, scope: "cold" },
+        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, rollId: firstRollId },
       ],
     });
   }
@@ -71,6 +72,7 @@ export function MainMenu({
         slots={slots}
         selectedSlotId={selectedSlotId}
         isGm={isGm}
+        rolls={rolls}
         onSelectSlot={onSelectSlot}
         onSave={onSaveCharacter}
         onClear={onClearCharacter}
@@ -164,8 +166,13 @@ export function MainMenu({
                   </label>
                   <label>
                     Aplica a
-                    <select value={bonus.scope} onChange={(event) => updateGlobalBonus(bonus.id, { scope: event.target.value as RollBonus["scope"] })}>
-                      <option value="cold">Frio</option>
+                    <select value={bonus.rollId} onChange={(event) => updateGlobalBonus(bonus.id, { rollId: event.target.value })}>
+                      <option value="">Selecciona tirada</option>
+                      {rolls.map((roll) => (
+                        <option key={roll.id} value={roll.id}>
+                          {roll.name}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <button className="danger" onClick={() => removeGlobalBonus(bonus.id)}>

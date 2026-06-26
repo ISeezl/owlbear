@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import type { CharacterMetadata, PlayerSlot, RollBonus } from "../types";
+import type { CharacterMetadata, PlayerSlot, RollBonus, RollConfig } from "../types";
 import { emptyCharacterForPlayer } from "../obr/metadata";
 
 type Props = {
   slots: PlayerSlot[];
   selectedSlotId?: string;
   isGm: boolean;
+  rolls: RollConfig[];
   onSelectSlot: (playerId: string) => void;
   onSave: (playerId: string, character: CharacterMetadata) => void;
   onClear: (playerId: string) => void;
 };
 
-export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onSave, onClear }: Props) {
+export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, onSelectSlot, onSave, onClear }: Props) {
   const selectedSlot = slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0];
   const [draft, setDraft] = useState<CharacterMetadata | undefined>(selectedSlot?.character);
   const [statsOpen, setStatsOpen] = useState(true);
@@ -54,11 +55,12 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
 
   function addBonus() {
     const next = ensureDraft();
+    const firstRollId = rolls[0]?.id ?? "";
     setDraft({
       ...next,
       bonuses: [
         ...(next.bonuses ?? []),
-        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, scope: "cold" },
+        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, rollId: firstRollId },
       ],
     });
   }
@@ -181,8 +183,13 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
                         </label>
                         <label>
                           Aplica a
-                          <select value={bonus.scope} onChange={(event) => updateBonus(bonus.id, { scope: event.target.value as RollBonus["scope"] })}>
-                            <option value="cold">Frio</option>
+                          <select value={bonus.rollId} onChange={(event) => updateBonus(bonus.id, { rollId: event.target.value })}>
+                            <option value="">Selecciona tirada</option>
+                            {rolls.map((roll) => (
+                              <option key={roll.id} value={roll.id}>
+                                {roll.name}
+                              </option>
+                            ))}
                           </select>
                         </label>
                         <button className="danger" onClick={() => removeBonus(bonus.id)}>

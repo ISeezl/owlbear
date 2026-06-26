@@ -5,13 +5,11 @@ export type ResultMode = "public" | "private" | "gm_only";
 export type EffectCondition = "success" | "failure" | "natural_1" | "natural_20" | "always";
 export type EffectOperation = "increment" | "decrement" | "set";
 
-export type RollBonusScope = "cold";
-
 export type RollBonus = {
   id: string;
   label: string;
   value: number;
-  scope: RollBonusScope;
+  rollId: string;
 };
 
 export type RollEffect = {

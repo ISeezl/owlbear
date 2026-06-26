@@ -1,4 +1,4 @@
-import type { CharacterMetadata, ExtensionSettings } from "../types";
+import type { CharacterMetadata, ExtensionSettings, RollConfig } from "../types";
 
 const variablePattern = /\b[A-Z_]+\b/g;
 
@@ -6,18 +6,24 @@ export function getFormulaVariables(formula: string) {
   return Array.from(new Set(formula.match(variablePattern) ?? []));
 }
 
-export function resolveFormula(formula: string, character?: CharacterMetadata, settings?: ExtensionSettings) {
+export function getRollBonusTotal(rollId: string, character?: CharacterMetadata, settings?: ExtensionSettings) {
+  const characterBonus = (character?.bonuses ?? [])
+    .filter((bonus) => bonus.rollId === rollId)
+    .reduce((total, bonus) => total + bonus.value, 0);
+  const globalBonus = (settings?.globalBonuses ?? [])
+    .filter((bonus) => bonus.rollId === rollId)
+    .reduce((total, bonus) => total + bonus.value, 0);
+
+  return characterBonus + globalBonus;
+}
+
+export function resolveFormula(formula: string, character?: CharacterMetadata, settings?: ExtensionSettings, roll?: RollConfig) {
   if (!formula.trim()) {
-    throw new Error("La fórmula no puede estar vacía.");
+    throw new Error("La formula no puede estar vacia.");
   }
 
   const coldClothingBonus = character?.cold.hasColdWeatherClothing && !character.cold.wetClothing ? 5 : 0;
-  const coldCharacterBonus = (character?.bonuses ?? [])
-    .filter((bonus) => bonus.scope === "cold")
-    .reduce((total, bonus) => total + bonus.value, 0);
-  const coldGlobalBonus = (settings?.globalBonuses ?? [])
-    .filter((bonus) => bonus.scope === "cold")
-    .reduce((total, bonus) => total + bonus.value, 0);
+  const appliedBonus = roll ? getRollBonusTotal(roll.id, character, settings) : 0;
 
   const variables: Record<string, number | undefined> = {
     STR: character?.stats.str,
@@ -30,7 +36,7 @@ export function resolveFormula(formula: string, character?: CharacterMetadata, s
     SURVIVAL: character?.skills?.survival,
     PERCEPTION: character?.skills?.perception,
     ATHLETICS: character?.skills?.athletics,
-    COLD_BONUS: coldClothingBonus + coldCharacterBonus + coldGlobalBonus,
+    COLD_BONUS: coldClothingBonus,
     FROST: character?.cold.frost,
     EXHAUSTION: character?.cold.exhaustion,
   };
@@ -42,13 +48,15 @@ export function resolveFormula(formula: string, character?: CharacterMetadata, s
 
   const missing = getFormulaVariables(formula).filter((name) => typeof variables[name] !== "number");
   if (missing.length > 0) {
-    throw new Error(`La fórmula usa ${missing.join(", ")}, pero el personaje no tiene esos datos configurados.`);
+    throw new Error(`La formula usa ${missing.join(", ")}, pero el personaje no tiene esos datos configurados.`);
   }
 
-  return formula
+  const resolved = formula
     .replace(variablePattern, (name) => String(variables[name] ?? 0))
     .replace(/\s+/g, "")
     .replace(/\+\-/g, "-");
+
+  return appliedBonus === 0 ? resolved : `${resolved}${appliedBonus >= 0 ? "+" : ""}${appliedBonus}`;
 }
 
 export function rollFormulaLocally(formula: string) {

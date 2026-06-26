@@ -189,7 +189,7 @@ export default function App() {
     }
 
     try {
-      const resolved = resolveFormula(roll.formula, character, settings);
+      const resolved = resolveFormula(roll.formula, character, settings, roll);
       let rollId: string;
       let localOutcome: RollOutcome | undefined;
 
