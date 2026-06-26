@@ -49,76 +49,89 @@ export function MainMenu({
         onSave={onSaveCharacter}
         onClear={onClearCharacter}
       />
-      <RollList
-        rolls={rolls}
-        onCreate={onCreateRoll}
-        onEdit={onEditRoll}
-        onDelete={onDeleteRoll}
-        onLoadPreset={onLoadPreset}
-        onOpenQuickMenu={onOpenQuickMenu}
-      />
-      <section className="panel">
-        <div className="section-title">
-          <h2>Presets</h2>
-        </div>
-        <div className="button-row">
-          <button onClick={onExport}>Exportar JSON</button>
-          <label className="file-button">
-            Importar JSON
-            <input
-              type="file"
-              accept="application/json"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) onImport(file);
-                event.currentTarget.value = "";
-              }}
-            />
-          </label>
-        </div>
-      </section>
-      <section className="panel">
-        <div className="section-title">
-          <h2>Configuracion</h2>
-        </div>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.useDicePlus}
-            onChange={(event) => onSettingsChange({ ...settings, useDicePlus: event.target.checked })}
+      {isGm ? (
+        <>
+          <RollList
+            rolls={rolls}
+            onCreate={onCreateRoll}
+            onEdit={onEditRoll}
+            onDelete={onDeleteRoll}
+            onLoadPreset={onLoadPreset}
+            onOpenQuickMenu={onOpenQuickMenu}
           />
-          Usar Dice+
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.allowPlayersToUseOwnedTokens}
-            onChange={(event) => onSettingsChange({ ...settings, allowPlayersToUseOwnedTokens: event.target.checked })}
-          />
-          Jugadores usan su hoja
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.allowGmToUseAllTokens}
-            onChange={(event) => onSettingsChange({ ...settings, allowGmToUseAllTokens: event.target.checked })}
-          />
-          GM usa todas las hojas
-        </label>
-        <label>
-          Resultado por defecto
-          <select
-            value={settings.defaultResultMode}
-            onChange={(event) =>
-              onSettingsChange({ ...settings, defaultResultMode: event.target.value as ExtensionSettings["defaultResultMode"] })
-            }
-          >
-            <option value="public">Publico</option>
-            <option value="private">Privado</option>
-            <option value="gm_only">Solo GM</option>
-          </select>
-        </label>
-      </section>
+          <section className="panel">
+            <div className="section-title">
+              <h2>Presets</h2>
+            </div>
+            <div className="button-row">
+              <button onClick={onExport}>Exportar JSON</button>
+              <label className="file-button">
+                Importar JSON
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onImport(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          </section>
+          <section className="panel">
+            <div className="section-title">
+              <h2>Configuracion</h2>
+            </div>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={settings.useDicePlus}
+                onChange={(event) => onSettingsChange({ ...settings, useDicePlus: event.target.checked })}
+              />
+              Usar Dice+
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={settings.allowPlayersToUseOwnedTokens}
+                onChange={(event) => onSettingsChange({ ...settings, allowPlayersToUseOwnedTokens: event.target.checked })}
+              />
+              Jugadores usan su hoja
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={settings.allowGmToUseAllTokens}
+                onChange={(event) => onSettingsChange({ ...settings, allowGmToUseAllTokens: event.target.checked })}
+              />
+              GM usa todas las hojas
+            </label>
+            <label>
+              Resultado por defecto
+              <select
+                value={settings.defaultResultMode}
+                onChange={(event) =>
+                  onSettingsChange({ ...settings, defaultResultMode: event.target.value as ExtensionSettings["defaultResultMode"] })
+                }
+              >
+                <option value="public">Publico</option>
+                <option value="private">Privado</option>
+                <option value="gm_only">Solo GM</option>
+              </select>
+            </label>
+          </section>
+        </>
+      ) : (
+        <section className="panel">
+          <div className="section-title">
+            <h2>Tiradas</h2>
+          </div>
+          <button className="primary" onClick={onOpenQuickMenu}>
+            Abrir tiradas
+          </button>
+        </section>
+      )}
     </>
   );
 }
