@@ -10,7 +10,7 @@ export const icewindDalePreset: RollConfig[] = [
     type: "save",
     dc: 10,
     visibility: "owner_and_gm",
-    target: "selected_token",
+    target: "active_sheet",
     resultMode: "public",
     effects: [
       { id: "cold-success", condition: "success", message: "Resiste el frío extremo." },
@@ -30,7 +30,7 @@ export const icewindDalePreset: RollConfig[] = [
     description: "Tirada de salvación contra muerte.",
     type: "death_save",
     visibility: "owner_and_gm",
-    target: "selected_token",
+    target: "active_sheet",
     resultMode: "public",
     effects: [
       {
@@ -75,7 +75,7 @@ export const icewindDalePreset: RollConfig[] = [
     type: "save",
     dc: 15,
     visibility: "owner_and_gm",
-    target: "selected_token",
+    target: "active_sheet",
     resultMode: "public",
     effects: [
       { id: "foraging-success", condition: "success", message: "Encuentra recursos útiles." },
@@ -91,7 +91,7 @@ export const icewindDalePreset: RollConfig[] = [
     type: "save",
     dc: 10,
     visibility: "owner_and_gm",
-    target: "selected_token",
+    target: "active_sheet",
     resultMode: "public",
     effects: [
       { id: "frost-success", condition: "success", message: "Resiste la escarcha." },

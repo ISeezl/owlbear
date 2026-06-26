@@ -9,7 +9,7 @@ const newRoll = (): RollConfig => ({
   description: "",
   type: "normal",
   visibility: "owner_and_gm",
-  target: "selected_token",
+  target: "active_sheet",
   resultMode: "public",
   effects: [{ id: `effect_${Date.now()}`, condition: "always", message: "Resultado aplicado." }],
 });
@@ -23,6 +23,7 @@ type Props = {
 export function RollEditor({ roll, onSave, onCancel }: Props) {
   const initial = useMemo(() => roll ?? newRoll(), [roll]);
   const [draft, setDraft] = useState<RollConfig>(initial);
+  const targetValue = draft.target === "selected_token" ? "active_sheet" : draft.target;
 
   function update<K extends keyof RollConfig>(key: K, value: RollConfig[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -80,9 +81,9 @@ export function RollEditor({ roll, onSave, onCancel }: Props) {
         </label>
         <label>
           Objetivo
-          <select value={draft.target} onChange={(event) => update("target", event.target.value as RollTarget)}>
-            <option value="selected_token">Token seleccionado</option>
-            <option value="self">Propio</option>
+          <select value={targetValue} onChange={(event) => update("target", event.target.value as RollTarget)}>
+            <option value="active_sheet">Hoja activa</option>
+            <option value="self">Mi hoja</option>
             <option value="none">Ninguno</option>
           </select>
         </label>
@@ -134,7 +135,7 @@ export function RollEditor({ roll, onSave, onCancel }: Props) {
       </button>
       <div className="button-row end">
         <button onClick={onCancel}>Cancelar</button>
-        <button className="primary" onClick={() => onSave(draft)}>
+        <button className="primary" onClick={() => onSave({ ...draft, target: targetValue })}>
           Guardar
         </button>
       </div>

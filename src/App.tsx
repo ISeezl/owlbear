@@ -10,12 +10,10 @@ import {
   emptyCharacterForPlayer,
   getPlayers,
   getRolls,
-  getSelectedToken,
   getSettings,
   savePlayerSlots,
   saveRolls,
   saveSettings,
-  setTokenCharacter,
   syncPlayerSlots,
   waitForOwlbear,
 } from "./obr/metadata";
@@ -23,7 +21,7 @@ import { registerContextMenu } from "./obr/registerContextMenu";
 import { applyRollEffects } from "./utils/rollEffects";
 import { canSeeRoll, canUseToken, getCurrentPlayer } from "./utils/permissions";
 import { resolveFormula, rollFormulaLocally } from "./utils/formulaResolver";
-import type { CharacterMetadata, ExtensionSettings, PendingRoll, PlayerSlot, RollConfig, RollOutcome, SelectedToken } from "./types";
+import type { CharacterMetadata, ExtensionSettings, PendingRoll, PlayerSlot, RollConfig, RollOutcome } from "./types";
 
 type View = "main" | "editor" | "quick";
 
@@ -37,7 +35,6 @@ export default function App() {
     allowGmToUseAllTokens: true,
     defaultResultMode: "public",
   });
-  const [selectedToken, setSelectedToken] = useState<SelectedToken | undefined>();
   const [slots, setSlots] = useState<PlayerSlot[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState({ id: "local-player", name: "Jugador local", isGm: false });
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
@@ -46,7 +43,6 @@ export default function App() {
   const pendingRolls = useRef(new Map<string, PendingRoll>());
   const rollsRef = useRef<RollConfig[]>([]);
   const slotsRef = useRef<PlayerSlot[]>([]);
-  const selectedTokenRef = useRef<SelectedToken | undefined>(undefined);
 
   const visibleSlots = useMemo(() => {
     if (currentPlayer.isGm) return slots;
@@ -66,15 +62,10 @@ export default function App() {
     slotsRef.current = slots;
   }, [slots]);
 
-  useEffect(() => {
-    selectedTokenRef.current = selectedToken;
-  }, [selectedToken]);
-
   async function refresh() {
-    const [storedRolls, storedSettings, token, player, players] = await Promise.all([
+    const [storedRolls, storedSettings, player, players] = await Promise.all([
       getRolls(),
       getSettings(),
-      getSelectedToken(),
       getCurrentPlayer(),
       getPlayers(),
     ]);
@@ -83,10 +74,8 @@ export default function App() {
 
     rollsRef.current = storedRolls;
     slotsRef.current = syncedSlots;
-    selectedTokenRef.current = token;
     setRolls(storedRolls);
     setSettings(storedSettings);
-    setSelectedToken(token);
     setCurrentPlayer(player);
     setSlots(syncedSlots);
     setSelectedSlotId((current) => {
@@ -100,7 +89,6 @@ export default function App() {
       registerContextMenu();
       refresh();
       try {
-        OBR.scene.items.onChange(() => refresh());
         OBR.player.onChange(() => refresh());
         OBR.party.onChange(() => refresh());
         OBR.room.onMetadataChange(() => refresh());
@@ -174,8 +162,7 @@ export default function App() {
   }
 
   async function runRoll(roll: RollConfig) {
-    const currentToken = await getSelectedToken();
-    const character = activeSlot?.character ?? currentToken?.character;
+    const character = activeSlot?.character;
     if (roll.target !== "none" && !character) {
       setNotice("La tirada necesita una hoja activa.");
       return;
@@ -195,7 +182,6 @@ export default function App() {
         rollId = await rollWithDicePlus({
           diceNotation: resolved,
           label: roll.name,
-          tokenId: currentToken?.id,
           showResults: roll.resultMode === "public",
         });
         setNotice(`Tirada enviada a Dice+: ${roll.name}.`);
@@ -206,7 +192,6 @@ export default function App() {
 
       pendingRolls.current.set(rollId, {
         rollId,
-        tokenId: currentToken?.id,
         playerId: activeSlot?.playerId,
         rollConfigId: roll.id,
         createdAt: Date.now(),
@@ -227,7 +212,7 @@ export default function App() {
     if (!roll) return;
 
     const slot = slotsRef.current.find((item) => item.playerId === pending.playerId);
-    const character = slot?.character ?? selectedTokenRef.current?.character;
+    const character = slot?.character;
     if (!character) {
       setNotice(`${roll.name}: total ${outcome.total}.`);
       return;
@@ -239,8 +224,6 @@ export default function App() {
         item.playerId === slot.playerId ? { ...item, character: result.character, updatedAt: Date.now() } : item,
       );
       await persistSlots(nextSlots);
-    } else if (pending.tokenId) {
-      await setTokenCharacter(pending.tokenId, result.character);
     }
 
     const messages = result.applied.map((effect) => effect.message).join(" ");

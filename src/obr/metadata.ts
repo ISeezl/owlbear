@@ -101,28 +101,40 @@ export async function syncPlayerSlots(players: PlayerSummary[]) {
   const byPlayer = new Map(storedSlots.map((slot) => [slot.playerId, slot]));
   const uniquePlayers = Array.from(new Map(players.map((player) => [player.id, player])).values());
   const playerSlots = uniquePlayers.filter((player) => !player.isGm);
+  const connectedPlayerIds = new Set(playerSlots.map((player) => player.id));
 
-  const slots = playerSlots.map((player) => {
+  const updatedSlots = storedSlots.map((slot) => ({
+    ...slot,
+    connected: connectedPlayerIds.has(slot.playerId),
+  }));
+
+  const slots = [...updatedSlots];
+
+  for (const player of playerSlots) {
     const existing = byPlayer.get(player.id);
     if (existing) {
-      return {
+      const index = slots.findIndex((slot) => slot.playerId === player.id);
+      slots[index] = {
         ...existing,
         playerName: player.name,
+        connected: true,
         character: {
           ...existing.character,
           ownerPlayerId: player.id,
           ownerPlayerName: player.name,
         },
       };
+      continue;
     }
 
-    return {
+    slots.push({
       playerId: player.id,
       playerName: player.name,
       character: emptyCharacterForPlayer(player),
+      connected: true,
       updatedAt: Date.now(),
-    };
-  });
+    });
+  }
 
   if (JSON.stringify(slots) !== JSON.stringify(storedSlots)) await savePlayerSlots(slots);
   return slots;

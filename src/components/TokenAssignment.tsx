@@ -49,23 +49,26 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
   return (
     <section className="panel">
       <div className="section-title">
-        <h2>Hojas de jugadores</h2>
+        <h2>{isGm ? "Jugadores y hojas" : "Mi hoja"}</h2>
       </div>
       {slots.length > 0 && selectedSlot ? (
         <>
-          <div className="slot-list">
-            {slots.map((slot) => (
-              <button
-                key={slot.playerId}
-                className={slot.playerId === selectedSlot.playerId ? "slot-button active" : "slot-button"}
-                onClick={() => onSelectSlot(slot.playerId)}
-              >
-                <strong>{slot.character.characterName || slot.playerName}</strong>
-                <span>{slot.playerName}</span>
-              </button>
-            ))}
-          </div>
-          <div className="token-summary">
+          {isGm ? (
+            <div className="slot-list">
+              {slots.map((slot) => (
+                <button
+                  key={slot.playerId}
+                  className={slot.playerId === selectedSlot.playerId ? "slot-button active" : "slot-button"}
+                  onClick={() => onSelectSlot(slot.playerId)}
+                >
+                  <strong>{slot.playerName}</strong>
+                  <span>{slot.character.characterName || "Hoja sin nombre"}</span>
+                  <small>{slot.connected ? "Conectado" : "Desconectado"}</small>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="sheet-summary">
             <strong>{ensureDraft().characterName || selectedSlot.playerName}</strong>
             <span>Jugador: {selectedSlot.playerName}</span>
             <span>
@@ -73,7 +76,7 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
               {ensureDraft().stats.con} · Agotamiento {ensureDraft().cold.exhaustion}
             </span>
           </div>
-          {isGm ? <p className="muted">Vista GM: todos los slots activos de la mesa.</p> : null}
+          {isGm ? <p className="muted">Vista DM: selecciona un jugador para revisar o editar su hoja.</p> : null}
           <label>
             Personaje
             <input
@@ -117,7 +120,7 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
           </div>
         </>
       ) : (
-        <p className="muted">No hay jugadores conectados a la mesa todavia.</p>
+        <p className="muted">Aun no hay slots de jugadores en la mesa.</p>
       )}
     </section>
   );

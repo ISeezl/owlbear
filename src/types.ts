@@ -1,6 +1,6 @@
 export type RollType = "normal" | "save" | "death_save" | "table" | "custom";
 export type RollVisibility = "everyone" | "gm_only" | "owner_and_gm";
-export type RollTarget = "selected_token" | "self" | "none";
+export type RollTarget = "active_sheet" | "selected_token" | "self" | "none";
 export type ResultMode = "public" | "private" | "gm_only";
 export type EffectCondition = "success" | "failure" | "natural_1" | "natural_20" | "always";
 export type EffectOperation = "increment" | "decrement" | "set";
@@ -64,6 +64,7 @@ export type PlayerSlot = {
   playerId: string;
   playerName: string;
   character: CharacterMetadata;
+  connected: boolean;
   updatedAt: number;
 };
 
@@ -89,7 +90,6 @@ export type RollOutcome = {
 
 export type PendingRoll = {
   rollId: string;
-  tokenId?: string;
   playerId?: string;
   rollConfigId: string;
   createdAt: number;

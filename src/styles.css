@@ -205,7 +205,8 @@ textarea {
   font-size: 18px;
 }
 
-.token-summary {
+.token-summary,
+.sheet-summary {
   display: grid;
   gap: 3px;
   padding: 8px;
@@ -215,7 +216,8 @@ textarea {
   border-radius: 7px;
 }
 
-.token-summary span {
+.token-summary span,
+.sheet-summary span {
   color: #64748b;
   font-size: 12px;
 }
@@ -240,6 +242,11 @@ textarea {
 .slot-button span {
   color: #64748b;
   font-size: 12px;
+}
+
+.slot-button small {
+  color: #64748b;
+  font-size: 11px;
 }
 
 .check {
