@@ -1,50 +1,30 @@
 import { useEffect, useState } from "react";
-import type { CharacterMetadata, SelectedToken } from "../types";
-import { getCurrentPlayer } from "../utils/permissions";
-import { getPlayers } from "../obr/metadata";
-
-type Player = { id: string; name: string };
-
-const emptyCharacter = (player: Player, name: string): CharacterMetadata => ({
-  ownerPlayerId: player.id,
-  ownerPlayerName: player.name,
-  characterName: name,
-  stats: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0, proficiencyBonus: 2 },
-  skills: { survival: 0, perception: 0, athletics: 0 },
-  deathSaves: { success: 0, failure: 0 },
-  cold: { exhaustion: 0, frost: 0, hasColdWeatherClothing: true, wetClothing: false },
-});
+import type { CharacterMetadata, PlayerSlot } from "../types";
+import { emptyCharacterForPlayer } from "../obr/metadata";
 
 type Props = {
-  selectedToken?: SelectedToken;
-  onSave: (character: CharacterMetadata) => void;
-  onClear: () => void;
+  slots: PlayerSlot[];
+  selectedSlotId?: string;
+  isGm: boolean;
+  onSelectSlot: (playerId: string) => void;
+  onSave: (playerId: string, character: CharacterMetadata) => void;
+  onClear: (playerId: string) => void;
 };
 
-export function TokenAssignment({ selectedToken, onSave, onClear }: Props) {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [draft, setDraft] = useState<CharacterMetadata | undefined>(selectedToken?.character);
+export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onSave, onClear }: Props) {
+  const selectedSlot = slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0];
+  const [draft, setDraft] = useState<CharacterMetadata | undefined>(selectedSlot?.character);
 
   useEffect(() => {
-    getPlayers().then(async (list) => {
-      if (list.length > 0) setPlayers(list);
-      else {
-        const current = await getCurrentPlayer();
-        setPlayers([{ id: current.id, name: current.name }]);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    setDraft(selectedToken?.character);
-  }, [selectedToken]);
-
-  const owner = players.find((player) => player.id === draft?.ownerPlayerId) ?? players[0];
+    setDraft(selectedSlot?.character);
+  }, [selectedSlot?.playerId, selectedSlot?.character]);
 
   function ensureDraft() {
     if (draft) return draft;
-    const player = players[0] ?? { id: "local-player", name: "Jugador local" };
-    return emptyCharacter(player, selectedToken?.name ?? "Personaje");
+    const player = selectedSlot
+      ? { id: selectedSlot.playerId, name: selectedSlot.playerName }
+      : { id: "local-player", name: "Jugador local" };
+    return emptyCharacterForPlayer(player);
   }
 
   function updateStats(key: keyof CharacterMetadata["stats"], value: number) {
@@ -57,45 +37,48 @@ export function TokenAssignment({ selectedToken, onSave, onClear }: Props) {
     setDraft({ ...next, skills: { ...(next.skills ?? {}), [key]: value } });
   }
 
+  function fixedOwner(character: CharacterMetadata) {
+    if (!selectedSlot) return character;
+    return {
+      ...character,
+      ownerPlayerId: selectedSlot.playerId,
+      ownerPlayerName: selectedSlot.playerName,
+    };
+  }
+
   return (
     <section className="panel">
       <div className="section-title">
-        <h2>Token seleccionado</h2>
+        <h2>Hojas de jugadores</h2>
       </div>
-      {selectedToken ? (
+      {slots.length > 0 && selectedSlot ? (
         <>
-          <div className="token-summary">
-            <strong>{selectedToken.character?.characterName || selectedToken.name}</strong>
-            <span>Dueño: {selectedToken.character?.ownerPlayerName ?? "Sin asignar"}</span>
-            {selectedToken.character ? (
-              <span>
-                CON {selectedToken.character.stats.con >= 0 ? "+" : ""}
-                {selectedToken.character.stats.con} · Agotamiento {selectedToken.character.cold.exhaustion}
-              </span>
-            ) : null}
+          <div className="slot-list">
+            {slots.map((slot) => (
+              <button
+                key={slot.playerId}
+                className={slot.playerId === selectedSlot.playerId ? "slot-button active" : "slot-button"}
+                onClick={() => onSelectSlot(slot.playerId)}
+              >
+                <strong>{slot.character.characterName || slot.playerName}</strong>
+                <span>{slot.playerName}</span>
+              </button>
+            ))}
           </div>
-          <label>
-            Jugador
-            <select
-              value={owner?.id ?? ""}
-              onChange={(event) => {
-                const player = players.find((item) => item.id === event.target.value) ?? players[0];
-                const next = ensureDraft();
-                setDraft({ ...next, ownerPlayerId: player.id, ownerPlayerName: player.name });
-              }}
-            >
-              {players.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="token-summary">
+            <strong>{ensureDraft().characterName || selectedSlot.playerName}</strong>
+            <span>Jugador: {selectedSlot.playerName}</span>
+            <span>
+              CON {ensureDraft().stats.con >= 0 ? "+" : ""}
+              {ensureDraft().stats.con} · Agotamiento {ensureDraft().cold.exhaustion}
+            </span>
+          </div>
+          {isGm ? <p className="muted">Vista GM: todos los slots activos de la mesa.</p> : null}
           <label>
             Personaje
             <input
               value={ensureDraft().characterName}
-              onChange={(event) => setDraft({ ...ensureDraft(), characterName: event.target.value })}
+              onChange={(event) => setDraft(fixedOwner({ ...ensureDraft(), characterName: event.target.value }))}
             />
           </label>
           <div className="stat-grid">
@@ -125,16 +108,16 @@ export function TokenAssignment({ selectedToken, onSave, onClear }: Props) {
             ))}
           </div>
           <div className="button-row">
-            <button className="primary" onClick={() => onSave(ensureDraft())}>
-              Guardar personaje
+            <button className="primary" onClick={() => onSave(selectedSlot.playerId, fixedOwner(ensureDraft()))}>
+              Guardar hoja
             </button>
-            <button className="danger" onClick={onClear}>
-              Limpiar asignación
+            <button className="danger" onClick={() => onClear(selectedSlot.playerId)}>
+              Reiniciar hoja
             </button>
           </div>
         </>
       ) : (
-        <p className="muted">Selecciona un token en Owlbear para asignarlo.</p>
+        <p className="muted">No hay jugadores conectados a la mesa todavia.</p>
       )}
     </section>
   );

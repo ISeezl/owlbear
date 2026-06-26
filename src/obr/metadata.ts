@@ -1,12 +1,25 @@
 import OBR from "@owlbear-rodeo/sdk";
-import { CHARACTER_METADATA_KEY, ROLLS_METADATA_KEY, SETTINGS_METADATA_KEY } from "../constants";
-import type { CharacterMetadata, ExtensionSettings, RollConfig, SelectedToken } from "../types";
+import { CHARACTER_METADATA_KEY, PLAYER_SLOTS_METADATA_KEY, ROLLS_METADATA_KEY, SETTINGS_METADATA_KEY } from "../constants";
+import type { CharacterMetadata, ExtensionSettings, PlayerSlot, RollConfig, SelectedToken } from "../types";
+
+type PlayerSummary = { id: string; name: string; isGm: boolean };
 
 const fallbackStore = {
   rolls: [] as RollConfig[],
   settings: undefined as ExtensionSettings | undefined,
+  slots: [] as PlayerSlot[],
   selected: undefined as SelectedToken | undefined,
 };
+
+export const emptyCharacterForPlayer = (player: { id: string; name: string }, name = player.name): CharacterMetadata => ({
+  ownerPlayerId: player.id,
+  ownerPlayerName: player.name,
+  characterName: name || "Personaje",
+  stats: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0, proficiencyBonus: 2 },
+  skills: { survival: 0, perception: 0, athletics: 0 },
+  deathSaves: { success: 0, failure: 0 },
+  cold: { exhaustion: 0, frost: 0, hasColdWeatherClothing: true, wetClothing: false },
+});
 
 export function isOwlbearReady() {
   return typeof window !== "undefined" && Boolean(window.location.ancestorOrigins?.length);
@@ -65,6 +78,55 @@ export async function saveSettings(settings: ExtensionSettings) {
   }
 }
 
+export async function getPlayerSlots(): Promise<PlayerSlot[]> {
+  try {
+    const metadata = await OBR.room.getMetadata();
+    return (metadata[PLAYER_SLOTS_METADATA_KEY] as PlayerSlot[] | undefined) ?? [];
+  } catch {
+    return fallbackStore.slots;
+  }
+}
+
+export async function savePlayerSlots(slots: PlayerSlot[]) {
+  fallbackStore.slots = slots;
+  try {
+    await OBR.room.setMetadata({ [PLAYER_SLOTS_METADATA_KEY]: slots });
+  } catch {
+    localStorage.setItem(PLAYER_SLOTS_METADATA_KEY, JSON.stringify(slots));
+  }
+}
+
+export async function syncPlayerSlots(players: PlayerSummary[]) {
+  const storedSlots = await getPlayerSlots();
+  const byPlayer = new Map(storedSlots.map((slot) => [slot.playerId, slot]));
+  const playerSlots = players.filter((player) => !player.isGm);
+
+  const slots = playerSlots.map((player) => {
+    const existing = byPlayer.get(player.id);
+    if (existing) {
+      return {
+        ...existing,
+        playerName: player.name,
+        character: {
+          ...existing.character,
+          ownerPlayerId: player.id,
+          ownerPlayerName: player.name,
+        },
+      };
+    }
+
+    return {
+      playerId: player.id,
+      playerName: player.name,
+      character: emptyCharacterForPlayer(player),
+      updatedAt: Date.now(),
+    };
+  });
+
+  if (JSON.stringify(slots) !== JSON.stringify(storedSlots)) await savePlayerSlots(slots);
+  return slots;
+}
+
 export async function getSelectedToken(): Promise<SelectedToken | undefined> {
   try {
     const selection = await OBR.player.getSelection();
@@ -107,11 +169,11 @@ export async function getTokenCharacter(tokenId: string): Promise<CharacterMetad
   }
 }
 
-export async function getPlayers() {
+export async function getPlayers(): Promise<PlayerSummary[]> {
   try {
     const players = await OBR.party.getPlayers();
-    return players.map((player) => ({ id: player.id, name: player.name || player.id }));
+    return players.map((player) => ({ id: player.id, name: player.name || player.id, isGm: player.role === "GM" }));
   } catch {
-    return [{ id: "local-player", name: "Jugador local" }];
+    return [{ id: "local-player", name: "Jugador local", isGm: false }];
   }
 }

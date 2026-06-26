@@ -6,7 +6,7 @@ export async function getCurrentPlayer() {
     const [role, name] = await Promise.all([OBR.player.getRole(), OBR.player.getName()]);
     return { id: OBR.player.id, name, isGm: role === "GM" };
   } catch {
-    return { id: "local-player", name: "Jugador local", isGm: true };
+    return { id: "local-player", name: "Jugador local", isGm: false };
   }
 }
 

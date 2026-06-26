@@ -1,9 +1,11 @@
-import type { ExtensionSettings, RollConfig, SelectedToken } from "../types";
+import type { ExtensionSettings, PlayerSlot, RollConfig } from "../types";
 import { RollList } from "./RollList";
 import { TokenAssignment } from "./TokenAssignment";
 
 type Props = {
-  selectedToken?: SelectedToken;
+  slots: PlayerSlot[];
+  selectedSlotId?: string;
+  isGm: boolean;
   rolls: RollConfig[];
   settings: ExtensionSettings;
   onCreateRoll: () => void;
@@ -11,15 +13,18 @@ type Props = {
   onDeleteRoll: (rollId: string) => void;
   onLoadPreset: () => void;
   onOpenQuickMenu: () => void;
+  onSelectSlot: (playerId: string) => void;
   onSaveCharacter: Parameters<typeof TokenAssignment>[0]["onSave"];
-  onClearCharacter: () => void;
+  onClearCharacter: Parameters<typeof TokenAssignment>[0]["onClear"];
   onSettingsChange: (settings: ExtensionSettings) => void;
   onExport: () => void;
   onImport: (file: File) => void;
 };
 
 export function MainMenu({
-  selectedToken,
+  slots,
+  selectedSlotId,
+  isGm,
   rolls,
   settings,
   onCreateRoll,
@@ -27,6 +32,7 @@ export function MainMenu({
   onDeleteRoll,
   onLoadPreset,
   onOpenQuickMenu,
+  onSelectSlot,
   onSaveCharacter,
   onClearCharacter,
   onSettingsChange,
@@ -35,7 +41,14 @@ export function MainMenu({
 }: Props) {
   return (
     <>
-      <TokenAssignment selectedToken={selectedToken} onSave={onSaveCharacter} onClear={onClearCharacter} />
+      <TokenAssignment
+        slots={slots}
+        selectedSlotId={selectedSlotId}
+        isGm={isGm}
+        onSelectSlot={onSelectSlot}
+        onSave={onSaveCharacter}
+        onClear={onClearCharacter}
+      />
       <RollList
         rolls={rolls}
         onCreate={onCreateRoll}
@@ -66,7 +79,7 @@ export function MainMenu({
       </section>
       <section className="panel">
         <div className="section-title">
-          <h2>Configuración</h2>
+          <h2>Configuracion</h2>
         </div>
         <label className="check">
           <input
@@ -82,7 +95,7 @@ export function MainMenu({
             checked={settings.allowPlayersToUseOwnedTokens}
             onChange={(event) => onSettingsChange({ ...settings, allowPlayersToUseOwnedTokens: event.target.checked })}
           />
-          Jugadores usan tokens propios
+          Jugadores usan su hoja
         </label>
         <label className="check">
           <input
@@ -90,7 +103,7 @@ export function MainMenu({
             checked={settings.allowGmToUseAllTokens}
             onChange={(event) => onSettingsChange({ ...settings, allowGmToUseAllTokens: event.target.checked })}
           />
-          GM usa todos los tokens
+          GM usa todas las hojas
         </label>
         <label>
           Resultado por defecto
@@ -100,7 +113,7 @@ export function MainMenu({
               onSettingsChange({ ...settings, defaultResultMode: event.target.value as ExtensionSettings["defaultResultMode"] })
             }
           >
-            <option value="public">Público</option>
+            <option value="public">Publico</option>
             <option value="private">Privado</option>
             <option value="gm_only">Solo GM</option>
           </select>

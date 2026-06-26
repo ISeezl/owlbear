@@ -1,20 +1,20 @@
-import type { RollConfig, SelectedToken } from "../types";
+import type { PlayerSlot, RollConfig } from "../types";
 
 type Props = {
-  token?: SelectedToken;
+  slot?: PlayerSlot;
   rolls: RollConfig[];
   onRoll: (roll: RollConfig) => void;
   onClose: () => void;
 };
 
-export function TokenQuickMenu({ token, rolls, onRoll, onClose }: Props) {
+export function TokenQuickMenu({ slot, rolls, onRoll, onClose }: Props) {
   return (
     <section className="panel quick-menu">
       <div className="section-title">
-        <h2>{token?.character?.characterName ?? token?.name ?? "Tiradas"}</h2>
+        <h2>{slot?.character.characterName ?? "Tiradas"}</h2>
         <button onClick={onClose}>Cerrar</button>
       </div>
-      {token?.character ? <p className="muted">Dueño: {token.character.ownerPlayerName}</p> : <p className="muted">Token sin personaje asignado.</p>}
+      {slot ? <p className="muted">Jugador: {slot.playerName}</p> : <p className="muted">No hay slot activo.</p>}
       <div className="quick-list">
         {rolls.map((roll) => (
           <button key={roll.id} className="quick-roll" onClick={() => onRoll(roll)}>

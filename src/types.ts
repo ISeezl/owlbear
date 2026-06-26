@@ -60,6 +60,13 @@ export type CharacterMetadata = {
   cold: ColdState;
 };
 
+export type PlayerSlot = {
+  playerId: string;
+  playerName: string;
+  character: CharacterMetadata;
+  updatedAt: number;
+};
+
 export type ExtensionSettings = {
   useDicePlus: boolean;
   allowPlayersToUseOwnedTokens: boolean;
@@ -83,6 +90,7 @@ export type RollOutcome = {
 export type PendingRoll = {
   rollId: string;
   tokenId?: string;
+  playerId?: string;
   rollConfigId: string;
   createdAt: number;
 };

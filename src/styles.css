@@ -220,6 +220,28 @@ textarea {
   font-size: 12px;
 }
 
+.slot-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.slot-button {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.slot-button.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.slot-button span {
+  color: #64748b;
+  font-size: 12px;
+}
+
 .check {
   display: flex;
   grid-template-columns: none;

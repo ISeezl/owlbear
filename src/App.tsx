@@ -6,12 +6,24 @@ import { RollEditor } from "./components/RollEditor";
 import { TokenQuickMenu } from "./components/TokenQuickMenu";
 import { icewindDalePreset } from "./presets/icewindDalePreset";
 import { rollWithDicePlus } from "./obr/dicePlus";
-import { getRolls, getSelectedToken, getSettings, saveRolls, saveSettings, setTokenCharacter, waitForOwlbear } from "./obr/metadata";
+import {
+  emptyCharacterForPlayer,
+  getPlayers,
+  getRolls,
+  getSelectedToken,
+  getSettings,
+  savePlayerSlots,
+  saveRolls,
+  saveSettings,
+  setTokenCharacter,
+  syncPlayerSlots,
+  waitForOwlbear,
+} from "./obr/metadata";
 import { registerContextMenu } from "./obr/registerContextMenu";
 import { applyRollEffects } from "./utils/rollEffects";
-import { canSeeRoll, canUseToken } from "./utils/permissions";
+import { canSeeRoll, canUseToken, getCurrentPlayer } from "./utils/permissions";
 import { resolveFormula, rollFormulaLocally } from "./utils/formulaResolver";
-import type { CharacterMetadata, ExtensionSettings, PendingRoll, RollConfig, RollOutcome, SelectedToken } from "./types";
+import type { CharacterMetadata, ExtensionSettings, PendingRoll, PlayerSlot, RollConfig, RollOutcome, SelectedToken } from "./types";
 
 type View = "main" | "editor" | "quick";
 
@@ -26,15 +38,61 @@ export default function App() {
     defaultResultMode: "public",
   });
   const [selectedToken, setSelectedToken] = useState<SelectedToken | undefined>();
+  const [slots, setSlots] = useState<PlayerSlot[]>([]);
+  const [currentPlayer, setCurrentPlayer] = useState({ id: "local-player", name: "Jugador local", isGm: false });
+  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
   const [editingRoll, setEditingRoll] = useState<RollConfig | undefined>();
   const [notice, setNotice] = useState("Listo.");
   const pendingRolls = useRef(new Map<string, PendingRoll>());
+  const rollsRef = useRef<RollConfig[]>([]);
+  const slotsRef = useRef<PlayerSlot[]>([]);
+  const selectedTokenRef = useRef<SelectedToken | undefined>(undefined);
+
+  const visibleSlots = useMemo(() => {
+    if (currentPlayer.isGm) return slots;
+    return slots.filter((slot) => slot.playerId === currentPlayer.id);
+  }, [currentPlayer.id, currentPlayer.isGm, slots]);
+
+  const activeSlot = useMemo(
+    () => visibleSlots.find((slot) => slot.playerId === selectedSlotId) ?? visibleSlots[0],
+    [selectedSlotId, visibleSlots],
+  );
+
+  useEffect(() => {
+    rollsRef.current = rolls;
+  }, [rolls]);
+
+  useEffect(() => {
+    slotsRef.current = slots;
+  }, [slots]);
+
+  useEffect(() => {
+    selectedTokenRef.current = selectedToken;
+  }, [selectedToken]);
 
   async function refresh() {
-    const [storedRolls, storedSettings, token] = await Promise.all([getRolls(), getSettings(), getSelectedToken()]);
+    const [storedRolls, storedSettings, token, player, players] = await Promise.all([
+      getRolls(),
+      getSettings(),
+      getSelectedToken(),
+      getCurrentPlayer(),
+      getPlayers(),
+    ]);
+    const syncedSlots = await syncPlayerSlots(players);
+    const nextVisibleSlots = player.isGm ? syncedSlots : syncedSlots.filter((slot) => slot.playerId === player.id);
+
+    rollsRef.current = storedRolls;
+    slotsRef.current = syncedSlots;
+    selectedTokenRef.current = token;
     setRolls(storedRolls);
     setSettings(storedSettings);
     setSelectedToken(token);
+    setCurrentPlayer(player);
+    setSlots(syncedSlots);
+    setSelectedSlotId((current) => {
+      if (current && nextVisibleSlots.some((slot) => slot.playerId === current)) return current;
+      return nextVisibleSlots[0]?.playerId;
+    });
   }
 
   useEffect(() => {
@@ -44,6 +102,8 @@ export default function App() {
       try {
         OBR.scene.items.onChange(() => refresh());
         OBR.player.onChange(() => refresh());
+        OBR.party.onChange(() => refresh());
+        OBR.room.onMetadataChange(() => refresh());
         OBR.broadcast.onMessage(ROLL_RESULT_CHANNEL, async (event) => {
           await handleRollResult(event.data as RollOutcome);
         });
@@ -53,9 +113,8 @@ export default function App() {
     });
   }, []);
 
-  const tokenCharacter = selectedToken?.character;
-
   async function persistRolls(nextRolls: RollConfig[]) {
+    rollsRef.current = nextRolls;
     setRolls(nextRolls);
     await saveRolls(nextRolls);
   }
@@ -65,43 +124,65 @@ export default function App() {
     await saveSettings(nextSettings);
   }
 
-  async function saveCharacter(character: CharacterMetadata) {
-    if (!selectedToken) return;
-    await setTokenCharacter(selectedToken.id, character);
-    setSelectedToken({ ...selectedToken, character });
-    setNotice(`Personaje guardado: ${character.characterName}.`);
+  async function persistSlots(nextSlots: PlayerSlot[]) {
+    slotsRef.current = nextSlots;
+    setSlots(nextSlots);
+    await savePlayerSlots(nextSlots);
   }
 
-  async function clearCharacter() {
-    if (!selectedToken) return;
-    await setTokenCharacter(selectedToken.id, undefined);
-    setSelectedToken({ ...selectedToken, character: undefined });
-    setNotice("Asignación limpiada.");
+  async function saveCharacter(playerId: string, character: CharacterMetadata) {
+    const nextSlots = slots.map((slot) =>
+      slot.playerId === playerId
+        ? {
+            ...slot,
+            character: {
+              ...character,
+              ownerPlayerId: slot.playerId,
+              ownerPlayerName: slot.playerName,
+            },
+            updatedAt: Date.now(),
+          }
+        : slot,
+    );
+    await persistSlots(nextSlots);
+    setNotice(`Hoja guardada: ${character.characterName}.`);
+  }
+
+  async function clearCharacter(playerId: string) {
+    const nextSlots = slots.map((slot) =>
+      slot.playerId === playerId
+        ? {
+            ...slot,
+            character: emptyCharacterForPlayer({ id: slot.playerId, name: slot.playerName }),
+            updatedAt: Date.now(),
+          }
+        : slot,
+    );
+    await persistSlots(nextSlots);
+    setNotice("Hoja reiniciada.");
   }
 
   async function openQuickMenu() {
-    const currentToken = await getSelectedToken();
-    setSelectedToken(currentToken);
-    if (!currentToken?.character) {
-      setNotice("Selecciona un token con personaje asignado.");
+    if (!activeSlot) {
+      setNotice("No hay hoja disponible para tirar.");
       return;
     }
 
-    const allowed = await Promise.all(rolls.map(async (roll) => ((await canSeeRoll(roll, currentToken.character)) ? roll : undefined)));
+    const allowed = await Promise.all(rolls.map(async (roll) => ((await canSeeRoll(roll, activeSlot.character)) ? roll : undefined)));
     setVisibleQuickRolls(allowed.filter(Boolean) as RollConfig[]);
     setView("quick");
   }
 
   async function runRoll(roll: RollConfig) {
     const currentToken = await getSelectedToken();
-    const character = currentToken?.character;
-    if (roll.target !== "none" && (!currentToken || !character)) {
-      setNotice("La tirada necesita un token con personaje asignado.");
+    const character = activeSlot?.character ?? currentToken?.character;
+    if (roll.target !== "none" && !character) {
+      setNotice("La tirada necesita una hoja activa.");
       return;
     }
 
     if (character && !(await canUseToken(character, settings))) {
-      setNotice("No tienes permisos para usar este token.");
+      setNotice("No tienes permisos para usar esta hoja.");
       return;
     }
 
@@ -126,6 +207,7 @@ export default function App() {
       pendingRolls.current.set(rollId, {
         rollId,
         tokenId: currentToken?.id,
+        playerId: activeSlot?.playerId,
         rollConfigId: roll.id,
         createdAt: Date.now(),
       });
@@ -141,19 +223,26 @@ export default function App() {
     if (!pending) return;
     pendingRolls.current.delete(outcome.rollId);
 
-    const roll = rolls.find((item) => item.id === pending.rollConfigId);
+    const roll = rollsRef.current.find((item) => item.id === pending.rollConfigId);
     if (!roll) return;
 
-    const token = await getSelectedToken();
-    const character = token?.character;
-    if (!pending.tokenId || !character) {
+    const slot = slotsRef.current.find((item) => item.playerId === pending.playerId);
+    const character = slot?.character ?? selectedTokenRef.current?.character;
+    if (!character) {
       setNotice(`${roll.name}: total ${outcome.total}.`);
       return;
     }
 
     const result = applyRollEffects(roll, outcome, character);
-    await setTokenCharacter(pending.tokenId, result.character);
-    setSelectedToken(token ? { ...token, character: result.character } : token);
+    if (slot) {
+      const nextSlots = slotsRef.current.map((item) =>
+        item.playerId === slot.playerId ? { ...item, character: result.character, updatedAt: Date.now() } : item,
+      );
+      await persistSlots(nextSlots);
+    } else if (pending.tokenId) {
+      await setTokenCharacter(pending.tokenId, result.character);
+    }
+
     const messages = result.applied.map((effect) => effect.message).join(" ");
     setNotice(`${roll.name}: total ${outcome.total}. ${messages}`);
   }
@@ -187,7 +276,7 @@ export default function App() {
   async function importPreset(file: File) {
     try {
       const data = JSON.parse(await file.text()) as { rolls?: RollConfig[] };
-      if (!Array.isArray(data.rolls)) throw new Error("JSON inválido.");
+      if (!Array.isArray(data.rolls)) throw new Error("JSON invalido.");
       await persistRolls(data.rolls);
       setNotice("Preset importado.");
     } catch {
@@ -196,9 +285,9 @@ export default function App() {
   }
 
   const headerSubtitle = useMemo(() => {
-    if (!tokenCharacter) return "Gestor editable de tiradas por token";
-    return `${tokenCharacter.characterName} · ${tokenCharacter.ownerPlayerName}`;
-  }, [tokenCharacter]);
+    if (!activeSlot) return "Gestor editable de tiradas por hoja";
+    return `${activeSlot.character.characterName} · ${activeSlot.playerName}`;
+  }, [activeSlot]);
 
   return (
     <main className="app-shell">
@@ -211,7 +300,9 @@ export default function App() {
       </header>
       {view === "main" ? (
         <MainMenu
-          selectedToken={selectedToken}
+          slots={visibleSlots}
+          selectedSlotId={activeSlot?.playerId}
+          isGm={currentPlayer.isGm}
           rolls={rolls}
           settings={settings}
           onCreateRoll={() => {
@@ -225,6 +316,7 @@ export default function App() {
           onDeleteRoll={(rollId) => persistRolls(rolls.filter((roll) => roll.id !== rollId))}
           onLoadPreset={loadPreset}
           onOpenQuickMenu={openQuickMenu}
+          onSelectSlot={setSelectedSlotId}
           onSaveCharacter={saveCharacter}
           onClearCharacter={clearCharacter}
           onSettingsChange={persistSettings}
@@ -233,9 +325,7 @@ export default function App() {
         />
       ) : null}
       {view === "editor" ? <RollEditor roll={editingRoll} onSave={saveRoll} onCancel={() => setView("main")} /> : null}
-      {view === "quick" ? (
-        <TokenQuickMenu token={selectedToken} rolls={visibleQuickRolls} onRoll={runRoll} onClose={() => setView("main")} />
-      ) : null}
+      {view === "quick" ? <TokenQuickMenu slot={activeSlot} rolls={visibleQuickRolls} onRoll={runRoll} onClose={() => setView("main")} /> : null}
       <footer className="notice">{notice}</footer>
     </main>
   );

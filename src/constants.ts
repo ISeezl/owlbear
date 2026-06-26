@@ -2,6 +2,7 @@ export const EXTENSION_ID = "cl.seba.token-roll-manager";
 
 export const ROLLS_METADATA_KEY = `${EXTENSION_ID}/rolls`;
 export const CHARACTER_METADATA_KEY = `${EXTENSION_ID}/character`;
+export const PLAYER_SLOTS_METADATA_KEY = `${EXTENSION_ID}/player-slots`;
 export const SETTINGS_METADATA_KEY = `${EXTENSION_ID}/settings`;
 
 export const DICE_PLUS_REQUEST_CHANNEL = "dice-plus/roll-request";
