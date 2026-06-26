@@ -249,6 +249,25 @@ textarea {
   font-size: 11px;
 }
 
+.collapsible {
+  margin-bottom: 10px;
+}
+
+.collapse-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.collapse-button span:last-child {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .check {
   display: flex;
   grid-template-columns: none;

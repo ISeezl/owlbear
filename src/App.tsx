@@ -50,7 +50,7 @@ export default function App() {
   const slotsRef = useRef<PlayerSlot[]>([]);
 
   const visibleSlots = useMemo(() => {
-    if (currentPlayer.isGm) return slots;
+    if (currentPlayer.isGm) return slots.filter((slot) => slot.connected);
     return slots.filter(
       (slot) => slot.playerId === currentPlayer.id || slot.playerConnectionId === currentPlayer.connectionId,
     );

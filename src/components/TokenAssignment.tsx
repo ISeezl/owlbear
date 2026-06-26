@@ -14,6 +14,7 @@ type Props = {
 export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onSave, onClear }: Props) {
   const selectedSlot = slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0];
   const [draft, setDraft] = useState<CharacterMetadata | undefined>(selectedSlot?.character);
+  const [statsOpen, setStatsOpen] = useState(true);
 
   useEffect(() => {
     setDraft(selectedSlot?.character);
@@ -85,31 +86,39 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, onSelectSlot, onS
               onChange={(event) => setDraft(fixedOwner({ ...ensureDraft(), characterName: event.target.value }))}
             />
           </label>
-          <div className="stat-grid">
-            {(["str", "dex", "con", "int", "wis", "cha"] as const).map((stat) => (
-              <label key={stat}>
-                {stat.toUpperCase()}
-                <input type="number" value={ensureDraft().stats[stat]} onChange={(event) => updateStats(stat, Number(event.target.value))} />
-              </label>
-            ))}
-            <label>
-              PROF
-              <input
-                type="number"
-                value={ensureDraft().stats.proficiencyBonus}
-                onChange={(event) => updateStats("proficiencyBonus", Number(event.target.value))}
-              />
-            </label>
-            {["survival", "perception", "athletics"].map((skill) => (
-              <label key={skill}>
-                {skill}
-                <input
-                  type="number"
-                  value={ensureDraft().skills?.[skill] ?? 0}
-                  onChange={(event) => updateSkill(skill, Number(event.target.value))}
-                />
-              </label>
-            ))}
+          <div className="collapsible">
+            <button className="collapse-button" onClick={() => setStatsOpen((open) => !open)} aria-expanded={statsOpen}>
+              <span>Estadisticas</span>
+              <span>{statsOpen ? "Ocultar" : "Mostrar"}</span>
+            </button>
+            {statsOpen ? (
+              <div className="stat-grid">
+                {(["str", "dex", "con", "int", "wis", "cha"] as const).map((stat) => (
+                  <label key={stat}>
+                    {stat.toUpperCase()}
+                    <input type="number" value={ensureDraft().stats[stat]} onChange={(event) => updateStats(stat, Number(event.target.value))} />
+                  </label>
+                ))}
+                <label>
+                  PROF
+                  <input
+                    type="number"
+                    value={ensureDraft().stats.proficiencyBonus}
+                    onChange={(event) => updateStats("proficiencyBonus", Number(event.target.value))}
+                  />
+                </label>
+                {["survival", "perception", "athletics"].map((skill) => (
+                  <label key={skill}>
+                    {skill}
+                    <input
+                      type="number"
+                      value={ensureDraft().skills?.[skill] ?? 0}
+                      onChange={(event) => updateSkill(skill, Number(event.target.value))}
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="button-row">
             <button className="primary" onClick={() => onSave(selectedSlot.playerId, fixedOwner(ensureDraft()))}>
