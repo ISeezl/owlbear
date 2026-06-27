@@ -61,6 +61,14 @@ export default function App() {
     () => visibleSlots.find((slot) => slot.playerId === selectedSlotId) ?? visibleSlots[0],
     [selectedSlotId, visibleSlots],
   );
+  const playerRolls = useMemo(() => {
+    if (!activeSlot) return [];
+    return rolls.filter(
+      (roll) =>
+        roll.ownerPlayerId === activeSlot.playerId ||
+        Boolean(activeSlot.playerConnectionId && roll.ownerConnectionId === activeSlot.playerConnectionId),
+    );
+  }, [activeSlot, rolls]);
 
   useEffect(() => {
     rollsRef.current = rolls;
@@ -302,6 +310,7 @@ export default function App() {
           selectedSlotId={activeSlot?.playerId}
           isGm={currentPlayer.isGm}
           rolls={rolls}
+          playerRolls={playerRolls}
           settings={settings}
           onCreateRoll={() => {
             setEditingRoll(undefined);
@@ -311,6 +320,7 @@ export default function App() {
             setEditingRoll(roll);
             setView("editor");
           }}
+          onSavePlayerRoll={saveRoll}
           onDeleteRoll={(rollId) => persistRolls(rolls.filter((roll) => roll.id !== rollId))}
           onLoadPreset={loadPreset}
           onOpenQuickMenu={openQuickMenu}

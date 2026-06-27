@@ -1,4 +1,5 @@
 import type { ExtensionSettings, PlayerSlot, RollBonus, RollConfig } from "../types";
+import { PlayerRollConfigurator } from "./PlayerRollConfigurator";
 import { RollList } from "./RollList";
 import { TokenAssignment } from "./TokenAssignment";
 
@@ -7,9 +8,11 @@ type Props = {
   selectedSlotId?: string;
   isGm: boolean;
   rolls: RollConfig[];
+  playerRolls: RollConfig[];
   settings: ExtensionSettings;
   onCreateRoll: () => void;
   onEditRoll: (roll: RollConfig) => void;
+  onSavePlayerRoll: (roll: RollConfig) => void;
   onDeleteRoll: (rollId: string) => void;
   onLoadPreset: () => void;
   onOpenQuickMenu: () => void;
@@ -26,9 +29,11 @@ export function MainMenu({
   selectedSlotId,
   isGm,
   rolls,
+  playerRolls,
   settings,
   onCreateRoll,
   onEditRoll,
+  onSavePlayerRoll,
   onDeleteRoll,
   onLoadPreset,
   onOpenQuickMenu,
@@ -186,14 +191,14 @@ export function MainMenu({
           </section>
         </>
       ) : (
-        <section className="panel">
-          <div className="section-title">
-            <h2>Tiradas</h2>
-          </div>
-          <button className="primary" onClick={onOpenQuickMenu}>
-            Abrir tiradas
-          </button>
-        </section>
+        <PlayerRollConfigurator
+          slot={slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0]}
+          rolls={playerRolls}
+          defaultResultMode={settings.defaultResultMode}
+          onSave={onSavePlayerRoll}
+          onDelete={onDeleteRoll}
+          onOpenQuickMenu={onOpenQuickMenu}
+        />
       )}
     </>
   );

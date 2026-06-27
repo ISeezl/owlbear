@@ -28,6 +28,8 @@ export type RollConfig = {
   name: string;
   icon: string;
   formula: string;
+  ownerPlayerId?: string;
+  ownerConnectionId?: string;
   description?: string;
   type: RollType;
   dc?: number;

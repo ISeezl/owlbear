@@ -26,6 +26,17 @@ export async function canUseToken(character: CharacterMetadata, settings: Extens
 
 export async function canSeeRoll(roll: RollConfig, character?: CharacterMetadata) {
   const player = await getCurrentPlayer();
+  if (roll.ownerPlayerId || roll.ownerConnectionId) {
+    if (player.isGm) return true;
+    return (
+      roll.ownerPlayerId === player.id ||
+      roll.ownerConnectionId === player.connectionId ||
+      Boolean(
+        character &&
+          (character.ownerPlayerId === roll.ownerPlayerId || character.ownerConnectionId === roll.ownerConnectionId),
+      )
+    );
+  }
   if (roll.visibility === "everyone") return true;
   if (player.isGm) return true;
   if (roll.visibility === "gm_only") return false;
