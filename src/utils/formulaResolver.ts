@@ -1,4 +1,5 @@
 import type { CharacterMetadata, ExtensionSettings, RollConfig } from "../types";
+import { getSystemConfig } from "./systemConfig";
 
 const variablePattern = /\b[A-Z_]+\b/g;
 
@@ -24,22 +25,21 @@ export function resolveFormula(formula: string, character?: CharacterMetadata, s
 
   const coldClothingBonus = character?.cold.hasColdWeatherClothing && !character.cold.wetClothing ? 5 : 0;
   const appliedBonus = roll ? getRollBonusTotal(roll.id, character, settings) : 0;
+  const systemConfig = getSystemConfig(settings);
 
   const variables: Record<string, number | undefined> = {
-    STR: character?.stats.str,
-    DEX: character?.stats.dex,
-    CON: character?.stats.con,
-    INT: character?.stats.int,
-    WIS: character?.stats.wis,
-    CHA: character?.stats.cha,
-    PROF: character?.stats.proficiencyBonus,
-    SURVIVAL: character?.skills?.survival,
-    PERCEPTION: character?.skills?.perception,
-    ATHLETICS: character?.skills?.athletics,
     COLD_BONUS: coldClothingBonus,
     FROST: character?.cold.frost,
     EXHAUSTION: character?.cold.exhaustion,
   };
+
+  for (const stat of systemConfig.stats) {
+    variables[stat.variable] = character?.stats?.[stat.key];
+  }
+
+  for (const skill of systemConfig.skills) {
+    variables[skill.variable] = character?.skills?.[skill.key];
+  }
 
   const unknown = getFormulaVariables(formula).filter((name) => !(name in variables));
   if (unknown.length > 0) {

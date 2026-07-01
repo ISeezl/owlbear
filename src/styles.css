@@ -106,6 +106,10 @@ button:hover,
   font-size: 15px;
 }
 
+.section-title.compact {
+  margin: 10px 0 8px;
+}
+
 h3 {
   font-size: 13px;
   margin: 12px 0 8px;
@@ -269,6 +273,12 @@ textarea {
   font-weight: 700;
 }
 
+label small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+}
+
 .collapse-button span:last-child {
   color: #64748b;
   font-size: 12px;
@@ -296,6 +306,31 @@ textarea {
   margin-bottom: 0;
 }
 
+.system-config-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.system-field-list {
+  display: grid;
+  gap: 8px;
+}
+
+.system-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 64px auto;
+  gap: 8px;
+  align-items: end;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.system-field-row label {
+  margin-bottom: 0;
+}
+
 .player-roll-form {
   margin-bottom: 10px;
 }
@@ -313,7 +348,8 @@ textarea {
 }
 
 @media (max-width: 360px) {
-  .bonus-row {
+  .bonus-row,
+  .system-field-row {
     grid-template-columns: 1fr 1fr;
   }
 }

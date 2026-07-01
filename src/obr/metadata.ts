@@ -1,6 +1,7 @@
 import OBR from "@owlbear-rodeo/sdk";
 import { CHARACTER_METADATA_KEY, PLAYER_SLOTS_METADATA_KEY, ROLLS_METADATA_KEY, SETTINGS_METADATA_KEY } from "../constants";
 import type { CharacterMetadata, ExtensionSettings, PlayerSlot, RollConfig, SelectedToken } from "../types";
+import { buildDefaultSkills, buildDefaultStats, defaultSystemConfig } from "../utils/systemConfig";
 
 type PlayerSummary = { id: string; name: string; isGm: boolean; connectionId?: string };
 
@@ -19,8 +20,8 @@ export const emptyCharacterForPlayer = (
   ownerPlayerName: player.name,
   ownerConnectionId: player.connectionId,
   characterName: name || "Personaje",
-  stats: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0, proficiencyBonus: 2 },
-  skills: { },
+  stats: buildDefaultStats(defaultSystemConfig),
+  skills: buildDefaultSkills(defaultSystemConfig),
   deathSaves: { success: 0, failure: 0 },
   bonuses: [],
   cold: { exhaustion: 0, frost: 0, hasColdWeatherClothing: false, wetClothing: false },
@@ -65,6 +66,7 @@ export async function getSettings(): Promise<ExtensionSettings> {
     allowGmToUseAllTokens: true,
     defaultResultMode: "public",
     globalBonuses: [],
+    systemConfig: defaultSystemConfig,
   };
 
   try {

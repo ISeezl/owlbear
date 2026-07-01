@@ -1,7 +1,9 @@
 import type { ExtensionSettings, PlayerSlot, RollBonus, RollConfig } from "../types";
 import { PlayerRollConfigurator } from "./PlayerRollConfigurator";
 import { RollList } from "./RollList";
+import { SystemConfigEditor } from "./SystemConfigEditor";
 import { TokenAssignment } from "./TokenAssignment";
+import { getSystemConfig } from "../utils/systemConfig";
 
 type Props = {
   slots: PlayerSlot[];
@@ -22,6 +24,7 @@ type Props = {
   onSettingsChange: (settings: ExtensionSettings) => void;
   onExport: () => void;
   onImport: (file: File) => void;
+  onNotice?: (message: string) => void;
 };
 
 export function MainMenu({
@@ -43,8 +46,10 @@ export function MainMenu({
   onSettingsChange,
   onExport,
   onImport,
+  onNotice,
 }: Props) {
   const globalBonuses = settings.globalBonuses ?? [];
+  const systemConfig = getSystemConfig(settings);
 
   function updateGlobalBonus(bonusId: string, changes: Partial<RollBonus>) {
     onSettingsChange({
@@ -78,6 +83,7 @@ export function MainMenu({
         selectedSlotId={selectedSlotId}
         isGm={isGm}
         rolls={rolls}
+        systemConfig={systemConfig}
         onSelectSlot={onSelectSlot}
         onSave={onSaveCharacter}
         onClear={onClearCharacter}
@@ -188,6 +194,12 @@ export function MainMenu({
               {globalBonuses.length === 0 ? <p className="muted">No hay bonos globales.</p> : null}
             </div>
             <button onClick={addGlobalBonus}>Agregar bono global</button>
+            <h3>Sistema de juego</h3>
+            <SystemConfigEditor
+              systemConfig={systemConfig}
+              onChange={(nextSystemConfig) => onSettingsChange({ ...settings, systemConfig: nextSystemConfig })}
+              onNotice={onNotice}
+            />
           </section>
         </>
       ) : (
@@ -195,6 +207,7 @@ export function MainMenu({
           slot={slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0]}
           rolls={playerRolls}
           defaultResultMode={settings.defaultResultMode}
+          systemConfig={systemConfig}
           onSave={onSavePlayerRoll}
           onDelete={onDeleteRoll}
           onOpenQuickMenu={onOpenQuickMenu}

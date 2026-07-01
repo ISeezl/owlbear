@@ -21,6 +21,7 @@ import { registerContextMenu } from "./obr/registerContextMenu";
 import { applyRollEffects } from "./utils/rollEffects";
 import { canSeeRoll, canUseToken, getCurrentPlayer } from "./utils/permissions";
 import { resolveFormula, rollFormulaLocally } from "./utils/formulaResolver";
+import { defaultSystemConfig, ensureCharacterSystemFields, getSystemConfig } from "./utils/systemConfig";
 import type { CharacterMetadata, ExtensionSettings, PendingRoll, PlayerSlot, RollConfig, RollOutcome } from "./types";
 
 type View = "main" | "editor" | "quick";
@@ -35,6 +36,7 @@ export default function App() {
     allowGmToUseAllTokens: true,
     defaultResultMode: "public",
     globalBonuses: [],
+    systemConfig: defaultSystemConfig,
   });
   const [slots, setSlots] = useState<PlayerSlot[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState({
@@ -137,12 +139,13 @@ export default function App() {
   }
 
   async function saveCharacter(playerId: string, character: CharacterMetadata) {
+    const systemConfig = getSystemConfig(settings);
     const nextSlots = slots.map((slot) =>
       slot.playerId === playerId
         ? {
             ...slot,
             character: {
-              ...character,
+              ...ensureCharacterSystemFields(character, systemConfig),
               ownerPlayerId: slot.playerId,
               ownerPlayerName: slot.playerName,
               ownerConnectionId: slot.playerConnectionId,
@@ -156,15 +159,19 @@ export default function App() {
   }
 
   async function clearCharacter(playerId: string) {
+    const systemConfig = getSystemConfig(settings);
     const nextSlots = slots.map((slot) =>
       slot.playerId === playerId
         ? {
             ...slot,
-            character: emptyCharacterForPlayer({
-              id: slot.playerId,
-              name: slot.playerName,
-              connectionId: slot.playerConnectionId,
-            }),
+            character: ensureCharacterSystemFields(
+              emptyCharacterForPlayer({
+                id: slot.playerId,
+                name: slot.playerName,
+                connectionId: slot.playerConnectionId,
+              }),
+              systemConfig,
+            ),
             updatedAt: Date.now(),
           }
         : slot,
@@ -269,7 +276,11 @@ export default function App() {
   }
 
   function exportPreset() {
-    const payload = JSON.stringify({ name: "Token Roll Manager Preset", version: "1.0.0", rolls }, null, 2);
+    const payload = JSON.stringify(
+      { name: "Token Roll Manager Preset", version: "1.0.0", systemConfig: getSystemConfig(settings), rolls },
+      null,
+      2,
+    );
     const blob = new Blob([payload], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -281,9 +292,10 @@ export default function App() {
 
   async function importPreset(file: File) {
     try {
-      const data = JSON.parse(await file.text()) as { rolls?: RollConfig[] };
+      const data = JSON.parse(await file.text()) as { rolls?: RollConfig[]; systemConfig?: ExtensionSettings["systemConfig"] };
       if (!Array.isArray(data.rolls)) throw new Error("JSON invalido.");
       await persistRolls(data.rolls);
+      if (data.systemConfig) await persistSettings({ ...settings, systemConfig: getSystemConfig({ systemConfig: data.systemConfig }) });
       setNotice("Preset importado.");
     } catch {
       setNotice("No se pudo importar el preset.");
@@ -330,6 +342,7 @@ export default function App() {
           onSettingsChange={persistSettings}
           onExport={exportPreset}
           onImport={importPreset}
+          onNotice={setNotice}
         />
       ) : null}
       {view === "editor" ? <RollEditor roll={editingRoll} onSave={saveRoll} onCancel={() => setView("main")} /> : null}

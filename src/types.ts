@@ -12,6 +12,20 @@ export type RollBonus = {
   rollId: string;
 };
 
+export type SystemField = {
+  key: string;
+  label: string;
+  variable: string;
+  defaultValue?: number;
+};
+
+export type SystemConfig = {
+  name: string;
+  version: string;
+  stats: SystemField[];
+  skills: SystemField[];
+};
+
 export type RollEffect = {
   id: string;
   condition: EffectCondition;
@@ -56,15 +70,7 @@ export type CharacterMetadata = {
   ownerPlayerName: string;
   ownerConnectionId?: string;
   characterName: string;
-  stats: {
-    str: number;
-    dex: number;
-    con: number;
-    int: number;
-    wis: number;
-    cha: number;
-    proficiencyBonus: number;
-  };
+  stats: Record<string, number>;
   skills?: Record<string, number>;
   bonuses?: RollBonus[];
   deathSaves: DeathSaves;
@@ -86,6 +92,7 @@ export type ExtensionSettings = {
   allowGmToUseAllTokens: boolean;
   defaultResultMode: ResultMode;
   globalBonuses?: RollBonus[];
+  systemConfig?: SystemConfig;
 };
 
 export type SelectedToken = {

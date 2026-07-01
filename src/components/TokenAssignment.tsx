@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
-import type { CharacterMetadata, PlayerSlot, RollBonus, RollConfig } from "../types";
+import type { CharacterMetadata, PlayerSlot, RollBonus, RollConfig, SystemConfig } from "../types";
 import { emptyCharacterForPlayer } from "../obr/metadata";
+import { ensureCharacterSystemFields } from "../utils/systemConfig";
 
 type Props = {
   slots: PlayerSlot[];
   selectedSlotId?: string;
   isGm: boolean;
   rolls: RollConfig[];
+  systemConfig: SystemConfig;
   onSelectSlot: (playerId: string) => void;
   onSave: (playerId: string, character: CharacterMetadata) => void;
   onClear: (playerId: string) => void;
 };
 
-export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, onSelectSlot, onSave, onClear }: Props) {
+export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, systemConfig, onSelectSlot, onSave, onClear }: Props) {
   const selectedSlot = slots.find((slot) => slot.playerId === selectedSlotId) ?? slots[0];
   const [draft, setDraft] = useState<CharacterMetadata | undefined>(selectedSlot?.character);
   const [statsOpen, setStatsOpen] = useState(true);
@@ -23,14 +25,14 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, onSelectSl
   }, [selectedSlot?.playerId, selectedSlot?.character]);
 
   function ensureDraft() {
-    if (draft) return draft;
+    if (draft) return ensureCharacterSystemFields(draft, systemConfig);
     const player = selectedSlot
       ? { id: selectedSlot.playerId, name: selectedSlot.playerName }
       : { id: "local-player", name: "Jugador local" };
-    return emptyCharacterForPlayer(player);
+    return ensureCharacterSystemFields(emptyCharacterForPlayer(player), systemConfig);
   }
 
-  function updateStats(key: keyof CharacterMetadata["stats"], value: number) {
+  function updateStats(key: string, value: number) {
     const next = ensureDraft();
     setDraft({ ...next, stats: { ...next.stats, [key]: value } });
   }
@@ -58,10 +60,7 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, onSelectSl
     const firstRollId = rolls[0]?.id ?? "";
     setDraft({
       ...next,
-      bonuses: [
-        ...(next.bonuses ?? []),
-        { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, rollId: firstRollId },
-      ],
+      bonuses: [...(next.bonuses ?? []), { id: `bonus_${Date.now()}`, label: "Nuevo bono", value: 0, rollId: firstRollId }],
     });
   }
 
@@ -106,8 +105,7 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, onSelectSl
             <strong>{ensureDraft().characterName || selectedSlot.playerName}</strong>
             <span>Jugador: {selectedSlot.playerName}</span>
             <span>
-              CON {ensureDraft().stats.con >= 0 ? "+" : ""}
-              {ensureDraft().stats.con} · Agotamiento {ensureDraft().cold.exhaustion}
+              {systemConfig.name} - Agotamiento {ensureDraft().cold.exhaustion}
             </span>
           </div>
           {isGm ? <p className="muted">Vista DM: selecciona un jugador para revisar o editar su hoja.</p> : null}
@@ -120,26 +118,43 @@ export function TokenAssignment({ slots, selectedSlotId, isGm, rolls, onSelectSl
           </label>
           <div className="collapsible">
             <button className="collapse-button" onClick={() => setStatsOpen((open) => !open)} aria-expanded={statsOpen}>
-              <span>Estadisticas</span>
+              <span>Estadisticas y habilidades</span>
               <span>{statsOpen ? "Ocultar" : "Mostrar"}</span>
             </button>
             {statsOpen ? (
-              <div className="stat-grid">
-                {(["str", "dex", "con", "int", "wis", "cha"] as const).map((stat) => (
-                  <label key={stat}>
-                    {stat.toUpperCase()}
-                    <input type="number" value={ensureDraft().stats[stat]} onChange={(event) => updateStats(stat, Number(event.target.value))} />
-                  </label>
-                ))}
-                <label>
-                  PROF
-                  <input
-                    type="number"
-                    value={ensureDraft().stats.proficiencyBonus}
-                    onChange={(event) => updateStats("proficiencyBonus", Number(event.target.value))}
-                  />
-                </label>
-              </div>
+              <>
+                <div className="stat-grid">
+                  {systemConfig.stats.map((stat) => (
+                    <label key={stat.key}>
+                      {stat.label}
+                      <input
+                        type="number"
+                        value={ensureDraft().stats[stat.key] ?? stat.defaultValue ?? 0}
+                        onChange={(event) => updateStats(stat.key, Number(event.target.value))}
+                      />
+                      <small>{stat.variable}</small>
+                    </label>
+                  ))}
+                </div>
+                {systemConfig.skills.length > 0 ? (
+                  <>
+                    <h3>Habilidades</h3>
+                    <div className="stat-grid">
+                      {systemConfig.skills.map((skill) => (
+                        <label key={skill.key}>
+                          {skill.label}
+                          <input
+                            type="number"
+                            value={ensureDraft().skills?.[skill.key] ?? skill.defaultValue ?? 0}
+                            onChange={(event) => updateSkill(skill.key, Number(event.target.value))}
+                          />
+                          <small>{skill.variable}</small>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </>
             ) : null}
           </div>
           {isGm ? (
